@@ -8,12 +8,17 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "db:start": "powershell -ExecutionPolicy Bypass -File scripts/dev-db.ps1 start",
     "db:stop": "powershell -ExecutionPolicy Bypass -File scripts/dev-db.ps1 stop"
+  },
+  "engines": {
+    "node": ">=22.13.0"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

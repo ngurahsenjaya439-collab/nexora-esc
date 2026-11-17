@@ -105,6 +105,80 @@ npm run dev
 
 ---
 
+## Deploy ke Neon + Vercel
+
+Aplikasi siap di-deploy sebagai demo publik: **Neon** untuk PostgreSQL, **Vercel** untuk hosting Next.js.
+
+### 1. Siapkan database Neon
+
+1. Buat project di [neon.tech](https://neon.tech), pilih region terdekat (mis. **AWS ap-southeast-1 / Singapore**).
+2. Buka menu **Connect**, salin dua connection string:
+   - **Pooled** (host mengandung `-pooler`) → `DATABASE_URL`
+   - **Direct** (matikan toggle *Pooled connection*) → `DIRECT_URL`
+
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@ep-xxx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+DIRECT_URL="postgresql://USER:PASSWORD@ep-xxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+```
+
+> Jika Prisma memberi error *"prepared statement already exists"*, tambahkan
+> `&pgbouncer=true&connection_limit=1` pada `DATABASE_URL`.
+
+### 2. Migrasi & seed ke Neon
+
+Jalankan dari lokal dengan `.env` sementara diarahkan ke Neon:
+
+```powershell
+npm run db:deploy   # prisma migrate deploy — memasang index & constraint
+npm run db:seed
+```
+
+Gunakan `db:deploy` (bukan `db:push`) agar partial unique index dan
+`CHECK (deadline >= start_date)` ikut terpasang.
+
+### 3. Environment variables di Vercel
+
+Set untuk **Production** dan **Preview**:
+
+| Key | Nilai |
+| --- | --- |
+| `DATABASE_URL` | pooled Neon + `sslmode=require` |
+| `DIRECT_URL` | direct Neon + `sslmode=require` |
+| `SESSION_PASSWORD` | random 32+ karakter |
+| `NEXT_PUBLIC_APP_NAME` | `NEXORA` |
+| `NEXORA_DEMO_MODE` | `true` |
+
+`SESSION_PASSWORD` **wajib ada saat build** — aplikasi menolak start di production
+tanpa secret ini. Generate dengan:
+
+```powershell
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+### 4. Deploy
+
+- Import repo GitHub di Vercel, root directory `/`, framework **Next.js**.
+- Set **Node.js version 22.x** (lihat `engines` di `package.json`).
+- `postinstall` menjalankan `prisma generate` otomatis saat build.
+- Setelah mengubah environment variable, klik **Redeploy** agar berlaku.
+
+### 5. Verifikasi pasca-deploy
+
+- `GET /api/health` → `{"status":"ok"}`
+- Login picker, dashboard Manager & Analyst, create/edit/arsip riset, dan badge deadline.
+- Cek **Vercel Logs** bila ada error koneksi Prisma.
+
+### Catatan demo publik
+
+Quick role switcher tidak memakai password, sehingga siapa pun dapat masuk sebagai
+Manager. Untuk demo:
+
+- Gunakan database/branch Neon **khusus demo** berisi data fiktif.
+- Reset berkala dengan `npm run db:seed`.
+- Jangan menyimpan data asli atau PII.
+
+---
+
 ## Peran & Hak Akses
 
 | Aksi | Manager | Analyst |
@@ -215,7 +289,8 @@ nexora/
 | `npm run lint` | ESLint |
 | `npm run db:start` | Nyalakan PostgreSQL dev (port 5434) |
 | `npm run db:stop` | Matikan PostgreSQL dev |
-| `npm run db:migrate` | Terapkan migrasi Prisma |
+| `npm run db:migrate` | Terapkan migrasi Prisma (dev) |
+| `npm run db:deploy` | Terapkan migrasi Prisma (production / Neon) |
 | `npm run db:seed` | Isi ulang data contoh ESC |
 | `npm run db:generate` | Generate Prisma Client |
 | `npm run db:studio` | Buka Prisma Studio |
