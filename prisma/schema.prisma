@@ -1,0 +1,463 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  MANAGER
+  ANALYST
+}
+
+enum ResearchStatus {
+  TO_DO
+  IN_PROGRESS
+  IN_REVIEW
+  REVISION_NEEDED
+  DONE
+  ARCHIVED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum AssignmentRole {
+  PRIMARY
+  BACKUP
+  COLLABORATOR
+}
+
+enum AvailabilityStatus {
+  AVAILABLE
+  BUSY_EXAM
+  UNAVAILABLE
+}
+
+enum SubmissionStatus {
+  PENDING_REVIEW
+  APPROVED
+  REVISION_REQUESTED
+}
+
+enum AttachmentKind {
+  LINK
+  FILE
+}
+
+enum ReviewDecision {
+  APPROVED
+  REVISION_REQUESTED
+}
+
+enum RevisionSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  BLOCKING
+}
+
+enum RevisionStatus {
+  OPEN
+  RESOLVED
+}
+
+enum ReferenceSourceType {
+  NEWS
+  JOURNAL
+  REPORT
+  INTERNAL
+  OTHER
+}
+
+// ---------------------------------------------------------------------------
+// Organization
+// ---------------------------------------------------------------------------
+
+model Department {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique @db.VarChar(120)
+  slug      String   @unique @db.VarChar(80)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  users        User[]
+  topics       ResearchTopic[]
+  dodTemplates DodTemplate[]
+
+  @@map("departments")
+}
+
+model User {
+  id                    String             @id @default(uuid()) @db.Uuid
+  departmentId          String?            @map("department_id") @db.Uuid
+  department            Department?        @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  name                  String             @db.VarChar(120)
+  email                 String             @unique @db.VarChar(180)
+  passwordHash          String?            @map("password_hash") @db.Text
+  role                  Role               @default(ANALYST)
+  avatarUrl             String?            @map("avatar_url") @db.Text
+  isActive              Boolean            @default(true) @map("is_active")
+  availability          AvailabilityStatus @default(AVAILABLE)
+  availabilityNote      String?            @map("availability_note") @db.VarChar(280)
+  availabilityUpdatedAt DateTime?          @map("availability_updated_at") @db.Timestamptz(6)
+  lastLoginAt           DateTime?          @map("last_login_at") @db.Timestamptz(6)
+  createdAt             DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  createdTopics        ResearchTopic[]         @relation("TopicCreator")
+  backupTopics         ResearchTopic[]         @relation("TopicBackupAnalyst")
+  assignments          ResearchAssignment[]    @relation("AssignmentUser")
+  assignmentsMade      ResearchAssignment[]    @relation("AssignmentAssigner")
+  submissions          ResearchSubmission[]    @relation("SubmissionAuthor")
+  submissionsReviewed  ResearchSubmission[]    @relation("SubmissionReviewer")
+  reviews              ResearchReview[]        @relation("ReviewAuthor")
+  revisionNotes        RevisionNote[]          @relation("RevisionAuthor")
+  resolvedNotes        RevisionNote[]          @relation("RevisionResolver")
+  references           ResearchReference[]     @relation("ReferenceAuthor")
+  statusChanges        ResearchStatusHistory[] @relation("StatusChanger")
+  auditLogs            AuditLog[]              @relation("AuditActor")
+  notifications        Notification[]
+  dodTemplatesCreated  DodTemplate[]           @relation("DodTemplateCreator")
+  dodChecklistsApplied DodChecklist[]          @relation("DodAppliedBy")
+  dodItemsChecked      DodChecklistItem[]      @relation("DodCheckedBy")
+
+  @@index([role])
+  @@index([isActive])
+  @@index([availability])
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Research core
+// ---------------------------------------------------------------------------
+
+model Category {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(80)
+  slug        String   @unique @db.VarChar(80)
+  color       String   @default("#2563eb") @db.VarChar(20)
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  topics ResearchTopicCategory[]
+
+  @@map("categories")
+}
+
+model ResearchTopic {
+  id              String         @id @default(uuid()) @db.Uuid
+  departmentId    String?        @map("department_id") @db.Uuid
+  department      Department?    @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  title           String         @db.VarChar(200)
+  description     String         @db.Text
+  objective       String?        @db.Text
+  relevanceNote   String?        @map("relevance_note") @db.Text
+  status          ResearchStatus @default(TO_DO)
+  priority        Priority       @default(MEDIUM)
+  startDate       DateTime       @map("start_date") @db.Date
+  deadline        DateTime       @db.Date
+  createdById     String         @map("created_by_id") @db.Uuid
+  createdBy       User           @relation("TopicCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  backupAnalystId String?        @map("backup_analyst_id") @db.Uuid
+  backupAnalyst   User?          @relation("TopicBackupAnalyst", fields: [backupAnalystId], references: [id], onDelete: SetNull)
+  completedAt     DateTime?      @map("completed_at") @db.Timestamptz(6)
+  archivedAt      DateTime?      @map("archived_at") @db.Timestamptz(6)
+  version         Int            @default(1)
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  categories    ResearchTopicCategory[]
+  assignments   ResearchAssignment[]
+  submissions   ResearchSubmission[]
+  revisionNotes RevisionNote[]
+  references    ResearchReference[]
+  dodChecklist  DodChecklist?
+  statusHistory ResearchStatusHistory[]
+
+  @@index([status, deadline])
+  @@index([createdById])
+  @@index([backupAnalystId])
+  @@index([departmentId])
+  @@map("research_topics")
+}
+
+model ResearchTopicCategory {
+  topicId    String        @map("topic_id") @db.Uuid
+  categoryId String        @map("category_id") @db.Uuid
+  topic      ResearchTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  category   Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([topicId, categoryId])
+  @@index([categoryId])
+  @@map("research_topic_categories")
+}
+
+model ResearchAssignment {
+  id           String         @id @default(uuid()) @db.Uuid
+  topicId      String         @map("topic_id") @db.Uuid
+  topic        ResearchTopic  @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  userId       String         @map("user_id") @db.Uuid
+  user         User           @relation("AssignmentUser", fields: [userId], references: [id], onDelete: Restrict)
+  role         AssignmentRole @default(PRIMARY)
+  assignedById String         @map("assigned_by_id") @db.Uuid
+  assignedBy   User           @relation("AssignmentAssigner", fields: [assignedById], references: [id], onDelete: Restrict)
+  assignedAt   DateTime       @default(now()) @map("assigned_at") @db.Timestamptz(6)
+  unassignedAt DateTime?      @map("unassigned_at") @db.Timestamptz(6)
+  isActive     Boolean        @default(true) @map("is_active")
+  note         String?        @db.VarChar(280)
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([topicId, isActive])
+  @@index([userId, isActive])
+  @@index([role, isActive])
+  @@map("research_assignments")
+}
+
+model ResearchSubmission {
+  id            String           @id @default(uuid()) @db.Uuid
+  topicId       String           @map("topic_id") @db.Uuid
+  topic         ResearchTopic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  submittedById String           @map("submitted_by_id") @db.Uuid
+  submittedBy   User             @relation("SubmissionAuthor", fields: [submittedById], references: [id], onDelete: Restrict)
+  version       Int              @default(1)
+  summary       String?          @db.Text
+  status        SubmissionStatus @default(PENDING_REVIEW)
+  submittedAt   DateTime         @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  reviewedById  String?          @map("reviewed_by_id") @db.Uuid
+  reviewedBy    User?            @relation("SubmissionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt    DateTime?        @map("reviewed_at") @db.Timestamptz(6)
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  attachments   SubmissionAttachment[]
+  reviews       ResearchReview[]
+  revisionNotes RevisionNote[]
+
+  @@unique([topicId, version])
+  @@index([topicId, status])
+  @@map("research_submissions")
+}
+
+model SubmissionAttachment {
+  id           String             @id @default(uuid()) @db.Uuid
+  submissionId String             @map("submission_id") @db.Uuid
+  submission   ResearchSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  kind         AttachmentKind
+  label        String             @db.VarChar(160)
+  url          String?            @db.Text
+  storageKey   String?            @map("storage_key") @db.Text
+  fileName     String?            @map("file_name") @db.Text
+  mimeType     String?            @map("mime_type") @db.VarChar(120)
+  sizeBytes    BigInt?            @map("size_bytes") @db.BigInt
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([submissionId])
+  @@map("submission_attachments")
+}
+
+model ResearchReview {
+  id           String             @id @default(uuid()) @db.Uuid
+  submissionId String             @map("submission_id") @db.Uuid
+  submission   ResearchSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reviewerId   String             @map("reviewer_id") @db.Uuid
+  reviewer     User               @relation("ReviewAuthor", fields: [reviewerId], references: [id], onDelete: Restrict)
+  decision     ReviewDecision
+  summary      String?            @db.Text
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  revisionNotes RevisionNote[]
+
+  @@index([submissionId])
+  @@map("research_reviews")
+}
+
+model RevisionNote {
+  id           String              @id @default(uuid()) @db.Uuid
+  topicId      String              @map("topic_id") @db.Uuid
+  topic        ResearchTopic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  submissionId String?             @map("submission_id") @db.Uuid
+  submission   ResearchSubmission? @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+  reviewId     String?             @map("review_id") @db.Uuid
+  review       ResearchReview?     @relation(fields: [reviewId], references: [id], onDelete: SetNull)
+  authorId     String              @map("author_id") @db.Uuid
+  author       User                @relation("RevisionAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  section      String              @db.VarChar(80)
+  note         String              @db.Text
+  severity     RevisionSeverity    @default(MEDIUM)
+  status       RevisionStatus      @default(OPEN)
+  resolvedById String?             @map("resolved_by_id") @db.Uuid
+  resolvedBy   User?               @relation("RevisionResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt   DateTime?           @map("resolved_at") @db.Timestamptz(6)
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([topicId, status])
+  @@index([submissionId])
+  @@map("revision_notes")
+}
+
+model ResearchReference {
+  id            String              @id @default(uuid()) @db.Uuid
+  topicId       String              @map("topic_id") @db.Uuid
+  topic         ResearchTopic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  addedById     String              @map("added_by_id") @db.Uuid
+  addedBy       User                @relation("ReferenceAuthor", fields: [addedById], references: [id], onDelete: Restrict)
+  title         String              @db.VarChar(300)
+  url           String              @db.Text
+  sourceType    ReferenceSourceType @default(NEWS) @map("source_type")
+  publisher     String?             @db.VarChar(160)
+  author        String?             @db.VarChar(160)
+  publishedAt   DateTime?           @map("published_at") @db.Date
+  accessedAt    DateTime?           @map("accessed_at") @db.Date
+  summary       String?             @db.Text
+  relevanceNote String?             @map("relevance_note") @db.Text
+  isPrimary     Boolean             @default(false) @map("is_primary")
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([topicId])
+  @@map("research_references")
+}
+
+// ---------------------------------------------------------------------------
+// Definition of Done (PBI-12)
+// ---------------------------------------------------------------------------
+
+model DodTemplate {
+  id           String      @id @default(uuid()) @db.Uuid
+  departmentId String?     @map("department_id") @db.Uuid
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  name         String      @db.VarChar(160)
+  description  String?     @db.Text
+  isDefault    Boolean     @default(false) @map("is_default")
+  isActive     Boolean     @default(true) @map("is_active")
+  createdById  String?     @map("created_by_id") @db.Uuid
+  createdBy    User?       @relation("DodTemplateCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  items      DodTemplateItem[]
+  checklists DodChecklist[]
+
+  @@index([departmentId])
+  @@map("dod_templates")
+}
+
+model DodTemplateItem {
+  id          String      @id @default(uuid()) @db.Uuid
+  templateId  String      @map("template_id") @db.Uuid
+  template    DodTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  label       String      @db.VarChar(200)
+  description String?     @db.Text
+  isRequired  Boolean     @default(true) @map("is_required")
+  sortOrder   Int         @default(0) @map("sort_order")
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  checklistItems DodChecklistItem[]
+
+  @@index([templateId])
+  @@map("dod_template_items")
+}
+
+model DodChecklist {
+  id          String        @id @default(uuid()) @db.Uuid
+  topicId     String        @unique @map("topic_id") @db.Uuid
+  topic       ResearchTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  templateId  String?       @map("template_id") @db.Uuid
+  template    DodTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  appliedById String        @map("applied_by_id") @db.Uuid
+  appliedBy   User          @relation("DodAppliedBy", fields: [appliedById], references: [id], onDelete: Restrict)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  items DodChecklistItem[]
+
+  @@map("dod_checklists")
+}
+
+model DodChecklistItem {
+  id             String           @id @default(uuid()) @db.Uuid
+  checklistId    String           @map("checklist_id") @db.Uuid
+  checklist      DodChecklist     @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  templateItemId String?          @map("template_item_id") @db.Uuid
+  templateItem   DodTemplateItem? @relation(fields: [templateItemId], references: [id], onDelete: SetNull)
+  label          String           @db.VarChar(200)
+  description    String?          @db.Text
+  isRequired     Boolean          @default(true) @map("is_required")
+  isChecked      Boolean          @default(false) @map("is_checked")
+  checkedById    String?          @map("checked_by_id") @db.Uuid
+  checkedBy      User?            @relation("DodCheckedBy", fields: [checkedById], references: [id], onDelete: SetNull)
+  checkedAt      DateTime?        @map("checked_at") @db.Timestamptz(6)
+  sortOrder      Int              @default(0) @map("sort_order")
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([checklistId])
+  @@map("dod_checklist_items")
+}
+
+// ---------------------------------------------------------------------------
+// Audit & notifications
+// ---------------------------------------------------------------------------
+
+model ResearchStatusHistory {
+  id          String          @id @default(uuid()) @db.Uuid
+  topicId     String          @map("topic_id") @db.Uuid
+  topic       ResearchTopic   @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  fromStatus  ResearchStatus? @map("from_status")
+  toStatus    ResearchStatus  @map("to_status")
+  changedById String          @map("changed_by_id") @db.Uuid
+  changedBy   User            @relation("StatusChanger", fields: [changedById], references: [id], onDelete: Restrict)
+  note        String?         @db.Text
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([topicId, createdAt])
+  @@map("research_status_history")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  action     String   @db.VarChar(80)
+  entityType String   @map("entity_type") @db.VarChar(80)
+  entityId   String?  @map("entity_id") @db.VarChar(80)
+  metadata   Json?
+  ip         String?  @db.VarChar(64)
+  userAgent  String?  @map("user_agent") @db.Text
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String    @db.VarChar(60)
+  title     String    @db.VarChar(160)
+  body      String?   @db.Text
+  link      String?   @db.Text
+  readAt    DateTime? @map("read_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
