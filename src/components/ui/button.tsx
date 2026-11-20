@@ -24,7 +24,7 @@ export function buttonClasses({
     danger:
       "bg-rose-600 text-white shadow-sm hover:bg-rose-500 focus-visible:outline-rose-600",
     accent:
-      "bg-indigo-600 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-indigo-600",
+      "bg-emerald-600 text-white shadow-sm hover:bg-emerald-600 focus-visible:outline-emerald-600",
   };
 
   const sizes: Record<ButtonSize, string> = {

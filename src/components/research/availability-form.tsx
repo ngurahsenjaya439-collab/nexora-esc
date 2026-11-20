@@ -34,7 +34,7 @@ export function AvailabilityForm({
         <select
           name="availability"
           defaultValue={initialAvailability}
-          className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 shadow-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
           aria-label="Status ketersediaan"
         >
           {AVAILABILITY_VALUES.map((value) => (
@@ -49,7 +49,7 @@ export function AvailabilityForm({
           defaultValue={initialNote ?? ""}
           maxLength={280}
           placeholder="Catatan singkat (opsional)"
-          className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
           aria-label="Catatan ketersediaan"
         />
       </div>

@@ -75,7 +75,7 @@ export function SidebarNav({
         {role === "MANAGER" ? (
           <Link
             href="/research/new"
-            className="inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
           >
             <Plus className="size-4" />
             Buat Riset
@@ -114,7 +114,7 @@ export function SidebarNav({
           href="/research/new"
           className={cn(
             buttonClasses({ variant: "accent", size: "md" }),
-            "w-full shadow-indigo-950/30",
+            "w-full shadow-emerald-950/30",
           )}
         >
           <Plus className="size-4" />

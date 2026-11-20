@@ -28,7 +28,7 @@ function RoleBadge({ role }: { role?: string }) {
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium ring-1 ring-inset",
         role === "PRIMARY"
-          ? "bg-indigo-50 text-indigo-700 ring-indigo-200"
+          ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
           : "bg-slate-50 text-slate-600 ring-slate-200",
       )}
     >
@@ -92,7 +92,7 @@ export function MyTaskList({
                   <td className="max-w-md px-5 py-4 align-top">
                     <Link
                       href={`/research/${topic.id}`}
-                      className="block truncate text-sm font-semibold text-slate-900 group-hover:text-indigo-700"
+                      className="block truncate text-sm font-semibold text-slate-900 group-hover:text-emerald-700"
                     >
                       {topic.title}
                     </Link>
@@ -136,7 +136,7 @@ export function MyTaskList({
                   <td className="px-4 py-4 align-top">
                     <Link
                       href={`/research/${topic.id}`}
-                      className="inline-flex size-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:text-indigo-600 hover:shadow-sm"
+                      className="inline-flex size-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:text-emerald-700 hover:shadow-sm"
                       aria-label={`Buka ${topic.title}`}
                     >
                       <ArrowUpRight className="size-4" />

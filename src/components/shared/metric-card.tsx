@@ -4,8 +4,8 @@ import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tones = {
-  indigo: "bg-indigo-50 text-indigo-600 ring-indigo-100",
-  blue: "bg-blue-50 text-blue-600 ring-blue-100",
+  indigo: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+  blue: "bg-emerald-50 text-blue-600 ring-blue-100",
   amber: "bg-amber-50 text-amber-600 ring-amber-100",
   emerald: "bg-emerald-50 text-emerald-600 ring-emerald-100",
   rose: "bg-rose-50 text-rose-600 ring-rose-100",

@@ -333,7 +333,7 @@ export default async function ResearchDetailPage({
         <div className="space-y-5 lg:col-span-2">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="flex items-center gap-2">
-              <FileText className="size-4 text-indigo-500" />
+              <FileText className="size-4 text-emerald-600" />
               <h2 className="text-sm font-semibold text-slate-900">
                 Latar Belakang & Deskripsi
               </h2>
@@ -357,10 +357,10 @@ export default async function ResearchDetailPage({
             ) : null}
 
             {topic.relevanceNote ? (
-              <div className="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
+              <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
                 <div className="flex items-center gap-2">
-                  <TriangleAlert className="size-4 text-indigo-500" />
-                  <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-indigo-700">
+                  <TriangleAlert className="size-4 text-emerald-600" />
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700">
                     Relevansi Isu
                   </h3>
                 </div>
@@ -394,14 +394,14 @@ export default async function ResearchDetailPage({
               ) : null}
 
               {canSubmit ? (
-                <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4">
                   <div className="flex items-start gap-2.5">
-                    <FileCheck2 className="mt-0.5 size-4 shrink-0 text-indigo-600" />
+                    <FileCheck2 className="mt-0.5 size-4 shrink-0 text-emerald-700" />
                     <div>
-                      <p className="text-xs font-semibold text-indigo-900">
+                      <p className="text-xs font-semibold text-emerald-900">
                         Kirim Hasil Riset
                       </p>
-                      <p className="mt-1 text-[11px] leading-5 text-indigo-800">
+                      <p className="mt-1 text-[11px] leading-5 text-emerald-800">
                         Lengkapi checklist DOD wajib, lalu ajukan hasil untuk
                         direview Manager. Submission akan mengubah status menjadi
                         In Review.
@@ -520,7 +520,7 @@ export default async function ResearchDetailPage({
           <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
               <div className="flex items-center gap-2">
-                <Link2 className="size-4 text-sky-500" />
+                <Link2 className="size-4 text-teal-600" />
                 <h2 className="text-sm font-semibold text-slate-900">
                   Referensi Awal
                 </h2>
@@ -546,7 +546,7 @@ export default async function ResearchDetailPage({
                           href={reference.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-900 hover:text-indigo-700"
+                          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-900 hover:text-emerald-700"
                         >
                           <span className="truncate">{reference.title}</span>
                           <ExternalLink className="size-3.5 shrink-0 text-slate-400" />
@@ -561,7 +561,7 @@ export default async function ResearchDetailPage({
                             <span>{reference.publisher}</span>
                           ) : null}
                           {reference.isPrimary ? (
-                            <span className="font-medium text-indigo-600">
+                            <span className="font-medium text-emerald-700">
                               Sumber utama
                             </span>
                           ) : null}
@@ -612,7 +612,7 @@ export default async function ResearchDetailPage({
                             ? "bg-slate-400"
                             : entry.toStatus === "REVISION_NEEDED"
                               ? "bg-amber-500"
-                              : "bg-indigo-500",
+                              : "bg-emerald-600",
                       )}
                     />
                     <div className="min-w-0 flex-1">
@@ -677,7 +677,7 @@ export default async function ResearchDetailPage({
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-2">
-              <Clock3 className="size-4 text-indigo-500" />
+              <Clock3 className="size-4 text-emerald-600" />
               <h2 className="text-sm font-semibold text-slate-900">Timeline</h2>
             </div>
 
@@ -711,7 +711,7 @@ export default async function ResearchDetailPage({
                     ? "bg-rose-500"
                     : deadlineInfo.tone === "amber"
                       ? "bg-amber-500"
-                      : "bg-indigo-500"
+                      : "bg-emerald-600"
                 }
               />
             </div>
@@ -748,7 +748,7 @@ export default async function ResearchDetailPage({
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-2">
-              <Users className="size-4 text-indigo-500" />
+              <Users className="size-4 text-emerald-600" />
               <h2 className="text-sm font-semibold text-slate-900">Tim Riset</h2>
             </div>
 
@@ -873,7 +873,7 @@ export default async function ResearchDetailPage({
             {isManager && topic.submissions.length > 0 ? (
               <Link
                 href="/team"
-                className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-indigo-600 transition hover:text-indigo-500"
+                className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 transition hover:text-emerald-600"
               >
                 <RotateCcw className="size-3" />
                 Kelola ketersediaan tim

@@ -50,7 +50,7 @@ export default async function LoginPage({
         />
         <div className="relative">
           <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-xl bg-indigo-500 text-base font-bold shadow-lg shadow-indigo-500/30">
+            <span className="grid size-10 place-items-center rounded-xl bg-emerald-600 text-base font-bold shadow-lg shadow-emerald-600/30">
               N
             </span>
             <div>
@@ -61,7 +61,7 @@ export default async function LoginPage({
         </div>
 
         <div className="relative max-w-md">
-          <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-medium text-indigo-200 ring-1 ring-inset ring-white/15">
+          <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-medium text-emerald-200 ring-1 ring-inset ring-white/15">
             <Sparkles className="size-3" />
             Sprint 1 · MVP
           </p>
@@ -75,7 +75,7 @@ export default async function LoginPage({
 
           <ul className="mt-8 space-y-3 text-sm text-slate-300">
             <li className="flex items-start gap-3">
-              <FlaskConical className="mt-0.5 size-4 shrink-0 text-indigo-400" />
+              <FlaskConical className="mt-0.5 size-4 shrink-0 text-emerald-500" />
               Topik riset dengan relevansi isu dan referensi awal.
             </li>
             <li className="flex items-start gap-3">
@@ -94,7 +94,7 @@ export default async function LoginPage({
         <div className="w-full max-w-md">
           <div className="mb-8 lg:hidden">
             <div className="flex items-center gap-3">
-              <span className="grid size-10 place-items-center rounded-xl bg-indigo-600 text-base font-bold text-white">
+              <span className="grid size-10 place-items-center rounded-xl bg-emerald-600 text-base font-bold text-white">
                 N
               </span>
               <div>
@@ -130,7 +130,7 @@ export default async function LoginPage({
                 <input type="hidden" name="redirectTo" value={redirectTo} />
                 <button
                   type="submit"
-                  className="group flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-indigo-300 hover:shadow-md"
+                  className="group flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-emerald-300 hover:shadow-md"
                 >
                   <Avatar name={manager.name} size="lg" />
                   <span className="min-w-0 flex-1">
@@ -141,7 +141,7 @@ export default async function LoginPage({
                       Head of Research · {manager.email}
                     </span>
                   </span>
-                  <ArrowRight className="size-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-indigo-500" />
+                  <ArrowRight className="size-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-emerald-600" />
                 </button>
               </form>
             </div>
@@ -160,7 +160,7 @@ export default async function LoginPage({
                     <input type="hidden" name="redirectTo" value={redirectTo} />
                     <button
                       type="submit"
-                      className="group flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 text-left shadow-sm transition hover:border-indigo-300 hover:shadow-md"
+                      className="group flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 text-left shadow-sm transition hover:border-emerald-300 hover:shadow-md"
                     >
                       <Avatar name={analyst.name} />
                       <span className="min-w-0 flex-1">
@@ -179,7 +179,7 @@ export default async function LoginPage({
                           ) : null}
                         </span>
                       </span>
-                      <ArrowRight className="size-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-indigo-500" />
+                      <ArrowRight className="size-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-emerald-600" />
                     </button>
                   </form>
                 );

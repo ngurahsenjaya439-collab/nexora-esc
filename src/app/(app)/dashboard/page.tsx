@@ -63,7 +63,7 @@ function DashboardTopicRow({
     >
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="truncate text-sm font-medium text-slate-900 group-hover:text-indigo-700">
+          <p className="truncate text-sm font-medium text-slate-900 group-hover:text-emerald-700">
             {topic.title}
           </p>
           <StatusBadge status={topic.status} />
@@ -223,7 +223,7 @@ export default async function DashboardPage({
             <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
                 <div className="flex items-center gap-2">
-                  <ListChecks className="size-4 text-indigo-500" />
+                  <ListChecks className="size-4 text-emerald-600" />
                   <h2 className="text-sm font-semibold text-slate-900">Tugas Saya</h2>
                   {data.myRevisionNeeded > 0 ? (
                     <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
@@ -233,7 +233,7 @@ export default async function DashboardPage({
                 </div>
                 <Link
                   href="/my-tasks"
-                  className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
+                  className="text-xs font-medium text-emerald-700 hover:text-emerald-600"
                 >
                   Kelola tugas
                 </Link>
@@ -272,7 +272,7 @@ export default async function DashboardPage({
               </div>
               <Link
                 href="/research?due=attention"
-                className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
+                className="text-xs font-medium text-emerald-700 hover:text-emerald-600"
               >
                 Lihat semua
               </Link>
@@ -305,7 +305,7 @@ export default async function DashboardPage({
               </div>
               <Link
                 href="/research"
-                className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
+                className="text-xs font-medium text-emerald-700 hover:text-emerald-600"
               >
                 Semua riset
               </Link>
@@ -321,7 +321,7 @@ export default async function DashboardPage({
         <div className="space-y-6">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-2">
-              <UserCog className="size-4 text-indigo-500" />
+              <UserCog className="size-4 text-emerald-600" />
               <h2 className="text-sm font-semibold text-slate-900">
                 Ketersediaan Saya
               </h2>
@@ -342,14 +342,14 @@ export default async function DashboardPage({
             <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
                 <div className="flex items-center gap-2">
-                  <Users className="size-4 text-indigo-500" />
+                  <Users className="size-4 text-emerald-600" />
                   <h2 className="text-sm font-semibold text-slate-900">
                     Beban Kerja Analyst
                   </h2>
                 </div>
                 <Link
                   href="/team"
-                  className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
+                  className="text-xs font-medium text-emerald-700 hover:text-emerald-600"
                 >
                   Kelola tim
                 </Link>
@@ -382,7 +382,7 @@ export default async function DashboardPage({
                             ? "bg-slate-50 text-slate-500 ring-slate-200"
                             : analyst.activeTasks >= 3
                               ? "bg-rose-50 text-rose-700 ring-rose-200"
-                              : "bg-indigo-50 text-indigo-700 ring-indigo-200",
+                              : "bg-emerald-50 text-emerald-700 ring-emerald-200",
                         )}
                         title="Riset aktif sebagai analyst utama"
                       >
@@ -395,14 +395,14 @@ export default async function DashboardPage({
             </section>
           ) : null}
 
-          <section className="overflow-hidden rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-600 to-indigo-500 p-5 text-white shadow-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-indigo-100">
+          <section className="overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-600 to-emerald-600 p-5 text-white shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-100">
               Ringkasan Portofolio
             </p>
             <p className="mt-2 text-3xl font-semibold tracking-tight">
               {data.metrics.completionRate}%
             </p>
-            <p className="mt-1 text-sm text-indigo-100">
+            <p className="mt-1 text-sm text-emerald-100">
               {data.metrics.completed} dari {data.metrics.total} riset selesai.
             </p>
             <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/20">
@@ -426,21 +426,21 @@ export default async function DashboardPage({
             </h2>
             <ol className="mt-3 space-y-3 text-xs leading-5 text-slate-500">
               <li className="flex gap-2.5">
-                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-indigo-50 text-[10px] font-semibold text-indigo-600">
+                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-emerald-50 text-[10px] font-semibold text-emerald-700">
                   1
                 </span>
                 Analyst memulai pengerjaan, melengkapi checklist DOD, lalu
                 mengirim hasil riset.
               </li>
               <li className="flex gap-2.5">
-                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-indigo-50 text-[10px] font-semibold text-indigo-600">
+                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-emerald-50 text-[10px] font-semibold text-emerald-700">
                   2
                 </span>
                 Manager meninjau submission dan memilih approve atau meminta
                 revisi terstruktur.
               </li>
               <li className="flex gap-2.5">
-                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-indigo-50 text-[10px] font-semibold text-indigo-600">
+                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-emerald-50 text-[10px] font-semibold text-emerald-700">
                   3
                 </span>
                 Revisi dikerjakan, dikirim ulang, lalu disetujui hingga topik

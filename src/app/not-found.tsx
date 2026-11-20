@@ -10,7 +10,7 @@ export default function NotFound() {
         <span className="mx-auto mb-4 inline-flex size-12 items-center justify-center rounded-xl bg-slate-50 text-slate-400 ring-1 ring-inset ring-slate-200">
           <FileQuestion className="size-6" />
         </span>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
           404
         </p>
         <h1 className="mt-1 text-lg font-semibold text-slate-900">

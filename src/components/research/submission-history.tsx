@@ -65,7 +65,7 @@ function SubmissionCard({ submission }: { submission: Submission }) {
                 href={attachment.url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-sky-50 px-2.5 py-1.5 text-[11px] font-medium text-sky-700 ring-1 ring-inset ring-sky-100 transition hover:bg-sky-100"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-teal-50 px-2.5 py-1.5 text-[11px] font-medium text-teal-700 ring-1 ring-inset ring-teal-100 transition hover:bg-teal-100"
               >
                 <ExternalLink className="size-3" />
                 {attachment.label}

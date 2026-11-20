@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           href="/dashboard"
           className="flex items-center gap-3 border-b border-white/5 px-5 py-5"
         >
-          <span className="grid size-9 place-items-center rounded-xl bg-indigo-500 text-sm font-bold text-white shadow-lg shadow-indigo-500/25">
+          <span className="grid size-9 place-items-center rounded-xl bg-emerald-600 text-sm font-bold text-white shadow-lg shadow-emerald-600/25">
             N
           </span>
           <span>
@@ -39,7 +39,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/85 backdrop-blur">
           <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
             <Link href="/dashboard" className="flex items-center gap-2.5 lg:hidden">
-              <span className="grid size-8 place-items-center rounded-lg bg-indigo-600 text-xs font-bold text-white">
+              <span className="grid size-8 place-items-center rounded-lg bg-emerald-600 text-xs font-bold text-white">
                 N
               </span>
               <span className="text-sm font-semibold tracking-[0.16em] text-slate-900">

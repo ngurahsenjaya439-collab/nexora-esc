@@ -17,8 +17,8 @@ const toneMap = {
   },
   info: {
     icon: Info,
-    className: "border-sky-200 bg-sky-50 text-sky-800",
-    iconClassName: "text-sky-600",
+    className: "border-teal-200 bg-teal-50 text-teal-800",
+    iconClassName: "text-teal-600",
   },
 };
 

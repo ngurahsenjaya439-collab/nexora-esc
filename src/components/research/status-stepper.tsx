@@ -60,7 +60,7 @@ export function StatusStepper({
                       : isCurrent
                         ? isRevision && step === "IN_PROGRESS"
                           ? "bg-amber-500 text-white ring-amber-500"
-                          : "bg-indigo-600 text-white ring-indigo-600"
+                          : "bg-emerald-600 text-white ring-emerald-600"
                         : "bg-white text-slate-400 ring-slate-200",
                   )}
                   aria-current={isCurrent ? "step" : undefined}
@@ -82,7 +82,7 @@ export function StatusStepper({
                   isCurrent
                     ? isRevision && step === "IN_PROGRESS"
                       ? "text-amber-700"
-                      : "text-indigo-700"
+                      : "text-emerald-700"
                     : isComplete
                       ? "text-emerald-700"
                       : "text-slate-400",

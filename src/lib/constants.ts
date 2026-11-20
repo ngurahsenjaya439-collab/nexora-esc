@@ -30,8 +30,8 @@ export const STATUS_META: Record<
   },
   IN_PROGRESS: {
     label: "In Progress",
-    badge: "bg-blue-50 text-blue-700 ring-blue-200",
-    dot: "bg-blue-500",
+    badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    dot: "bg-emerald-500",
   },
   IN_REVIEW: {
     label: "In Review",
@@ -69,8 +69,8 @@ export const PRIORITY_META: Record<
   },
   MEDIUM: {
     label: "Medium",
-    badge: "bg-sky-50 text-sky-700 ring-sky-200",
-    dot: "bg-sky-500",
+    badge: "bg-teal-50 text-teal-700 ring-teal-200",
+    dot: "bg-teal-600",
   },
   HIGH: {
     label: "High",
@@ -173,8 +173,8 @@ export const REVISION_SEVERITY_META: Record<
   },
   MEDIUM: {
     label: "Medium",
-    badge: "bg-sky-50 text-sky-700 ring-sky-200",
-    dot: "bg-sky-500",
+    badge: "bg-teal-50 text-teal-700 ring-teal-200",
+    dot: "bg-teal-600",
   },
   HIGH: {
     label: "High",

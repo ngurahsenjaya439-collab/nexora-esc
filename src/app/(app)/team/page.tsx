@@ -49,7 +49,7 @@ export default async function TeamPage() {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-2">
-          <UserCog className="size-4 text-indigo-500" />
+          <UserCog className="size-4 text-emerald-600" />
           <h2 className="text-sm font-semibold text-slate-900">
             Ketersediaan Saya
           </h2>
@@ -109,7 +109,7 @@ export default async function TeamPage() {
 
                   <Link
                     href={`/research?analystId=${analyst.id}`}
-                    className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-indigo-600 hover:text-indigo-500"
+                    className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-emerald-700 hover:text-emerald-600"
                   >
                     Lihat riset
                     <ArrowUpRight className="size-3" />

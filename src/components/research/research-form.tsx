@@ -115,9 +115,9 @@ function SubmitButton({ label }: { label: string }) {
 }
 
 const inputClasses =
-  "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100";
+  "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
 const textareaClasses =
-  "w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm leading-6 text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100";
+  "w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm leading-6 text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
 const labelClasses = "block text-xs font-semibold text-slate-700";
 
 export function ResearchForm({
@@ -210,7 +210,7 @@ export function ResearchForm({
       ) : null}
 
       {initial.references.length > 0 && mode === "edit" ? (
-        <div className="rounded-xl border border-sky-100 bg-sky-50/70 px-4 py-3 text-xs leading-5 text-sky-800">
+        <div className="rounded-xl border border-teal-100 bg-teal-50/70 px-4 py-3 text-xs leading-5 text-teal-800">
           Referensi yang tersimpan akan diganti dengan daftar di bawah saat Anda
           menyimpan perubahan.
         </div>
@@ -298,7 +298,7 @@ export function ResearchForm({
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="flex items-center gap-2">
-          <CalendarClock className="size-4 text-indigo-500" />
+          <CalendarClock className="size-4 text-emerald-600" />
           <h2 className="text-sm font-semibold text-slate-900">Status & Timeline</h2>
         </div>
 
@@ -397,7 +397,7 @@ export function ResearchForm({
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="flex items-center gap-2">
-          <Users className="size-4 text-indigo-500" />
+          <Users className="size-4 text-emerald-600" />
           <h2 className="text-sm font-semibold text-slate-900">Penugasan Tim</h2>
         </div>
         <p className="mt-1 text-xs text-slate-500">
@@ -501,14 +501,14 @@ export function ResearchForm({
           {categories.map((category) => (
             <label
               key={category.id}
-              className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50/40 has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50"
+              className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50/40 has-[:checked]:border-emerald-300 has-[:checked]:bg-emerald-50"
             >
               <input
                 type="checkbox"
                 name="categoryIds"
                 value={category.id}
                 defaultChecked={initial.categoryIds.includes(category.id)}
-                className="size-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                className="size-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-600"
               />
               <span className="flex items-center gap-2">
                 <span
@@ -527,7 +527,7 @@ export function ResearchForm({
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <Link2 className="size-4 text-sky-500" />
+              <Link2 className="size-4 text-teal-600" />
               <h2 className="text-sm font-semibold text-slate-900">Referensi Awal</h2>
             </div>
             <p className="mt-1 text-xs text-slate-500">
