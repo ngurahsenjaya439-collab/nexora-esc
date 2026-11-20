@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import {
   AlertCircle,
+  AlertTriangle,
   CalendarClock,
   Link2,
   Loader2,
@@ -17,10 +18,12 @@ import {
 
 import { buttonClasses } from "@/components/ui/button";
 import {
+  AVAILABILITY_META,
   PRIORITY_OPTIONS,
   REFERENCE_SOURCE_LABELS,
   REFERENCE_SOURCE_VALUES,
   STATUS_OPTIONS,
+  type AvailabilityValue,
   type ReferenceSourceValue,
 } from "@/lib/constants";
 import { initialActionState, type ActionState } from "@/lib/result";
@@ -146,6 +149,13 @@ export function ResearchForm({
 
   const errors = state.fieldErrors ?? {};
   const submitLabel = mode === "create" ? "Simpan Topik Riset" : "Simpan Perubahan";
+
+  const selectedAnalysts = [primaryAnalystId, backupAnalystId]
+    .map((id) => analysts.find((analyst) => analyst.id === id))
+    .filter((analyst): analyst is AnalystOption => Boolean(analyst));
+  const availabilityWarnings = selectedAnalysts.filter(
+    (analyst) => analyst.availability !== "AVAILABLE",
+  );
 
   const updateReference = (
     key: string,
@@ -419,6 +429,13 @@ export function ResearchForm({
               {analysts.map((analyst) => (
                 <option key={analyst.id} value={analyst.id}>
                   {analyst.name} · {analyst.activeTaskCount} tugas aktif
+                  {analyst.availability !== "AVAILABLE"
+                    ? ` · ⚠ ${
+                        AVAILABILITY_META[
+                          analyst.availability as AvailabilityValue
+                        ]?.label ?? analyst.availability
+                      }`
+                    : ""}
                 </option>
               ))}
             </select>
@@ -451,6 +468,28 @@ export function ResearchForm({
             <FieldError messages={errors.backupAnalystId} />
           </div>
         </div>
+
+        {availabilityWarnings.length > 0 ? (
+          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-800">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <div>
+              <p className="font-medium">Perhatikan ketersediaan analyst</p>
+              <p className="mt-0.5">
+                {availabilityWarnings
+                  .map((analyst) => {
+                    const meta =
+                      AVAILABILITY_META[
+                        analyst.availability as AvailabilityValue
+                      ] ?? AVAILABILITY_META.AVAILABLE;
+                    return `${analyst.name} (${meta.label})`;
+                  })
+                  .join(", ")}
+                . Penugasan tetap dapat disimpan, tetapi pertimbangkan beban kerja
+                dan backup analyst.
+              </p>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">

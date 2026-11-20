@@ -1,10 +1,11 @@
 # NEXORA — ESC Research CMS
 
 NEXORA adalah research management workspace untuk **Departemen Research East Side Central (ESC)**.
-Repositori ini berisi implementasi **Fase 1 / Sprint 1 (MVP)** yang sudah dapat dijalankan, lengkap dengan
-skema database yang disiapkan sampai Fase 3.
+Repositori ini berisi implementasi **Fase 1 / Sprint 1 (MVP)** dan **Fase 2 / Sprint 2 (Workflow)**:
+submission riset, review Manager, revisi terstruktur, checklist Definition of Done, serta
+manajemen ketersediaan Analyst.
 
-![status](https://img.shields.io/badge/sprint-1%20MVP-4f46e5) ![next](https://img.shields.io/badge/Next.js-16.4.6-000000) ![prisma](https://img.shields.io/badge/Prisma-6.19.3-2D3748)
+![status](https://img.shields.io/badge/sprint-2%20workflow-4f46e5) ![next](https://img.shields.io/badge/Next.js-16.4.6-000000) ![prisma](https://img.shields.io/badge/Prisma-6.19.3-2D3748)
 
 ---
 
@@ -19,6 +20,19 @@ skema database yang disiapkan sampai Fase 3.
 | Auth / role switcher | ✅ | Quick role switcher Manager ↔ Analyst (cookie session terenkripsi) |
 | Validasi & error handling | ✅ | Zod di server, validasi klien, pesan error per field |
 | Data realistis ESC | ✅ | 1 Manager, 4 Analyst, 6 kategori, 6 topik, referensi, riwayat status, template DOD |
+
+## Ringkasan Sprint 2
+
+| Kebutuhan | Status | Implementasi |
+| --- | --- | --- |
+| **US-04** Workspace tugas Analyst | ✅ | Halaman `/my-tasks`: ringkasan status, filter status/deadline/peran, tabel tugas Primary & Backup |
+| **US-05** Workflow status | ✅ | Stepper To Do → In Progress → In Review → Done + aksi transisi cepat sesuai peran |
+| **US-06** Submission hasil riset | ✅ | Form submission dengan ringkasan eksekutif, dokumen utama, hingga 5 lampiran tautan, riwayat versi |
+| **US-07** Review & approval Manager | ✅ | Panel review: setujui (`DONE`) atau minta revisi (`REVISION_NEEDED`) dengan catatan terstruktur per bagian |
+| **US-08** Catatan revisi | ✅ | Catatan per section + severity (Low/Medium/High/Blocking), status Open/Resolved, resolve oleh Analyst/Manager |
+| **US-09** Checklist Definition of Done | ✅ | Toggle item interaktif, progres, validasi item wajib sebelum submit & approval, apply template oleh Manager |
+| **US-10** Ketersediaan Analyst | ✅ | Kontrol Available / Busy–Exam / Unavailable di dashboard, `/team`, dan peringatan saat menetapkan tugas |
+| Indikator perhatian | ✅ | Banner & badge "menunggu review" untuk Manager dan "perlu revisi" untuk Analyst di dashboard/daftar riset |
 
 ---
 
@@ -187,9 +201,18 @@ Manager. Untuk demo:
 | Buat / edit / arsipkan topik | ✅ | ❌ (redirect + pesan) |
 | Tetapkan analyst utama & backup | ✅ | ❌ |
 | Lihat detail, timeline, referensi | ✅ | ✅ |
+| Ubah status kerja (To Do ↔ In Progress, mulai revisi) | ✅ | ✅ hanya topik yang ditugaskan |
+| Kirim submission hasil riset | ❌ | ✅ hanya Primary/Backup aktif & status In Progress / Revision Needed |
+| Approve (`DONE`) atau minta revisi (`REVISION_NEEDED`) | ✅ | ❌ |
+| Toggle checklist DOD | ✅ (termasuk saat review) | ✅ hanya saat To Do / In Progress / Revision Needed |
+| Tandai catatan revisi selesai | ✅ | ✅ hanya topik yang ditugaskan |
+| Ubah ketersediaan | ✅ (semua Analyst + diri sendiri) | ✅ hanya akun sendiri |
+| Akses `/my-tasks` | ❌ (redirect `/team`) | ✅ |
+| Akses `/team` | ✅ | ❌ (redirect `/dashboard?denied=1`) |
 
 Guard diterapkan di dua lapis: `proxy.ts` (cek cookie) dan `requireUser` /
-`requireManagerPage` di setiap halaman serta di dalam setiap Server Action.
+`requireManagerPage` / `requireAnalystPage` di setiap halaman serta di dalam
+setiap Server Action.
 
 ---
 
@@ -223,6 +246,56 @@ Guard diterapkan di dua lapis: `proxy.ts` (cek cookie) dan `requireUser` /
 - Deadline **tidak boleh** lebih awal dari tanggal mulai, divalidasi di tiga
   lapis: klien, Zod, dan `CHECK` constraint PostgreSQL.
 
+### Submission hasil riset (US-06)
+- Hanya **Analyst aktif (Primary/Backup)** pada topik terkait yang dapat mengirim
+  submission.
+- Submission hanya dibuka saat status `IN_PROGRESS` atau `REVISION_NEEDED`.
+- Semua item DOD **wajib** harus dicentang sebelum submission dikirim.
+- Versi submission bertambah otomatis (`v1`, `v2`, ...) dengan unique constraint
+  `(topic_id, version)`.
+- Lampiran berupa **tautan** (`LINK`); kolom file sudah disiapkan tetapi upload
+  file belum diaktifkan pada Sprint 2.
+- Submission sukses mengubah status topik menjadi `IN_REVIEW`.
+
+### Review & approval (US-07)
+- Hanya **Manager** yang dapat melakukan review.
+- Syarat: topik berstatus `IN_REVIEW` dan submission berstatus `PENDING_REVIEW`.
+- **Approve** menandai topik `DONE` + `completed_at`, serta memblokir approval
+  bila masih ada item DOD wajib yang belum dicentang.
+- **Minta revisi** mewajibkan minimal satu catatan terstruktur dan mengubah
+  status topik menjadi `REVISION_NEEDED`.
+
+### Catatan revisi (US-08)
+- Setiap catatan memiliki `section` (Latar Belakang, Metodologi, Analisis &
+  Temuan, Referensi & Sitasi, Struktur & Penulisan, Lainnya), `note`, dan
+  `severity` (`LOW` / `MEDIUM` / `HIGH` / `BLOCKING`).
+- Status catatan `OPEN` / `RESOLVED`; Analyst yang ditugaskan atau Manager dapat
+  menandai selesai/membuka kembali.
+- Semua catatan tersimpan sebagai riwayat dan terhubung ke submission + review.
+
+### Checklist Definition of Done (US-09)
+- Template default **Standar Riset ESC** memiliki 5 item wajib.
+- Manager dapat menerapkan template ke topik yang belum punya checklist.
+- Analyst hanya dapat mengubah checklist saat topik berada pada fase pengerjaan;
+  checklist dikunci saat `IN_REVIEW` / `DONE` dan Manager memverifikasi saat review.
+- Setiap toggle dicatat di audit log (`DOD_ITEM_CHECKED` / `DOD_ITEM_UNCHECKED`).
+
+### Ketersediaan Analyst (US-10)
+- Nilai: `AVAILABLE`, `BUSY_EXAM` (label **Busy / Exam**), `UNAVAILABLE`, plus
+  catatan singkat maksimal 280 karakter.
+- Analyst dapat memperbarui statusnya sendiri; Manager dapat memperbarui semua
+  Analyst melalui `/team`.
+- Dashboard dan form penugasan menampilkan peringatan bila Analyst yang dipilih
+  sedang sibuk/tidak tersedia.
+
+### Audit & konkurensi
+- Perubahan status, submission, review, revisi, DOD, dan ketersediaan ditulis ke
+  `audit_logs`.
+- Transisi status memakai **optimistic version**; jika topik sudah diubah pengguna
+  lain, aksi ditolak dan pengguna diminta memuat ulang.
+- Perubahan status lewat form edit Manager tetap dimungkinkan sebagai override
+  administratif dan dicatat sebagai `RESEARCH_STATUS_OVERRIDDEN`.
+
 ---
 
 ## Skema Database (Fase 1–3)
@@ -234,8 +307,8 @@ memecahkan data.
 | --- | --- |
 | Organisasi & akun | `departments`, `users` |
 | Riset inti | `research_topics`, `research_topic_categories`, `categories`, `research_assignments`, `research_references` |
-| Submission & review (Fase 2) | `research_submissions`, `submission_attachments`, `research_reviews`, `revision_notes` |
-| Definition of Done (Fase 2) | `dod_templates`, `dod_template_items`, `dod_checklists`, `dod_checklist_items` |
+| Submission & review (Sprint 2) | `research_submissions`, `submission_attachments`, `research_reviews`, `revision_notes` |
+| Definition of Done (Sprint 2) | `dod_templates`, `dod_template_items`, `dod_checklists`, `dod_checklist_items` |
 | Audit & notifikasi (Fase 3) | `research_status_history`, `audit_logs`, `notifications` |
 
 Constraint penting yang sudah aktif:
@@ -258,17 +331,19 @@ nexora/
 ├─ src/
 │  ├─ app/
 │  │  ├─ (auth)/login/       # Quick role switcher
-│  │  ├─ (app)/dashboard/    # Dashboard metrik
+│  │  ├─ (app)/dashboard/    # Dashboard metrik + perhatian workflow
+│  │  ├─ (app)/my-tasks/     # Workspace tugas Analyst (Sprint 2)
+│  │  ├─ (app)/team/         # Tim & ketersediaan Analyst (Sprint 2)
 │  │  ├─ (app)/research/     # List, detail, create, edit
 │  │  └─ api/health/         # Health check
 │  ├─ components/
 │  │  ├─ layout/             # Sidebar, user menu
-│  │  ├─ research/           # Badge, avatar, form, filter
+│  │  ├─ research/           # Badge, form, filter, submission, review, DOD
 │  │  ├─ shared/             # Page header, metric, pagination, flash
 │  │  └─ ui/                 # Button, badge
-│  ├─ lib/                   # Utils, constants, dates, session
+│  ├─ lib/                   # Utils, constants, dates, workflow, session
 │  └─ server/
-│     ├─ actions/            # Server Actions (auth & riset)
+│     ├─ actions/            # Server Actions (auth, riset, workflow, availability)
 │     ├─ auth/               # Guard & current user
 │     ├─ services/           # Query & transaksi domain
 │     └─ validators/         # Skema Zod
@@ -309,29 +384,40 @@ npm run build       # compiled successfully
 Smoke test manual yang sudah diverifikasi:
 
 - Redirect anonim ke `/login`; login picker tampil.
-- Dashboard Manager: metrik, beban kerja analyst, daftar perhatian.
-- Dashboard Analyst: hanya "Tugas Saya", tanpa panel beban kerja.
-- Daftar riset: filter status/kategori/analyst/deadline + pagination.
-- Detail riset: timeline, tim, referensi, riwayat status, DOD.
+- Dashboard Manager: metrik, beban kerja analyst, banner "menunggu review",
+  kontrol ketersediaan, daftar perhatian.
+- Dashboard Analyst: "Tugas Saya", banner "perlu revisi", tanpa panel beban kerja.
+- Daftar riset: filter status/kategori/analyst/deadline + pagination + badge aksi.
+- Detail riset: timeline, tim, referensi, riwayat status, DOD interaktif,
+  submission & review, catatan revisi.
 - Create/edit/arsip topik berjalan; validasi deadline & backup.
 - Analyst diarahkan keluar dari `/research/new` dan `/research/:id/edit`.
+- Analyst membuka `/my-tasks`, memfilter tugas, dan membuka detail.
+- Analyst mengirim submission setelah semua DOD wajib dicentang.
+- Manager menyetujui submission → topik `DONE`; atau meminta revisi dengan
+  catatan terstruktur → topik `REVISION_NEEDED`.
+- Analyst menandai catatan revisi selesai, melengkapi DOD, lalu mengirim ulang.
+- Manager memperbarui ketersediaan Analyst melalui `/team`.
 - `GET /api/health` → `{"status":"ok"}`.
 
 ---
 
-## Batasan Sprint 1
+## Batasan Sprint 2
 
 Fitur berikut sengaja ditunda ke sprint selanjutnya:
 
 - **Login tanpa password.** Quick role switcher dipakai untuk pengujian alur
   Manager vs Analyst. Autentikasi kredensial penuh dan manajemen user akan
   ditambahkan pada fase berikutnya.
-- **Belum ada upload file.** Referensi disimpan sebagai URL.
-- **Submission & review (Fase 2)** serta **notifikasi (Fase 3)** sudah memiliki
-  tabel di database, tetapi belum memiliki UI.
-- **Checklist DOD bersifat read-only** pada UI Sprint 1 (data template & snapshot
-  sudah tersedia di database).
-- **Belum ada notifikasi email / real-time.**
+- **Upload file belum aktif.** Submission mendukung tautan (`LINK`); kolom file
+  (`storage_key`, `size_bytes`) sudah disiapkan tetapi belum dipakai UI.
+- **Notifikasi (Fase 3)** sudah memiliki tabel di database, tetapi belum memiliki
+  UI, email, atau real-time. Indikator saat ini berupa banner/badge di halaman.
+- **Approval tidak memblokir catatan revisi lama yang masih open** — Manager hanya
+  diberi peringatan; approval tetap dapat dilakukan bila DOD wajib sudah lengkap.
+- **Checklist DOD belum dapat disunting labelnya** dari UI; template dikelola
+  melalui database/seeder.
+- **Belum ada komentar diskusi bebas** di luar catatan revisi terstruktur.
 
 ---
 

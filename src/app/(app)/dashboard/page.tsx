@@ -5,13 +5,17 @@ import {
   CalendarClock,
   CheckCircle2,
   CircleDot,
+  FileCheck2,
   FlaskConical,
   ListChecks,
   Plus,
+  RotateCcw,
   TriangleAlert,
+  UserCog,
   Users,
 } from "lucide-react";
 
+import { AvailabilityForm } from "@/components/research/availability-form";
 import { Avatar } from "@/components/research/avatar";
 import { CategoryChip } from "@/components/research/category-chip";
 import { DeadlineBadge } from "@/components/research/deadline-badge";
@@ -146,6 +150,34 @@ export default async function DashboardPage({
 
       {flash ? <FlashMessage tone={flash.tone} message={flash.message} /> : null}
 
+      {isManager && data.metrics.pendingReview > 0 ? (
+        <Link
+          href="/research?status=IN_REVIEW"
+          className="flex items-start gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-800 transition hover:bg-violet-100"
+        >
+          <FileCheck2 className="mt-0.5 size-4 shrink-0 text-violet-600" />
+          <span className="flex-1">
+            <strong>{data.metrics.pendingReview} submission menunggu review.</strong>{" "}
+            Tinjau hasil riset Analyst dan berikan keputusan approval atau revisi.
+          </span>
+          <ArrowUpRight className="mt-0.5 size-4 shrink-0" />
+        </Link>
+      ) : null}
+
+      {!isManager && data.myRevisionNeeded > 0 ? (
+        <Link
+          href="/my-tasks?status=REVISION_NEEDED"
+          className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 transition hover:bg-amber-100"
+        >
+          <RotateCcw className="mt-0.5 size-4 shrink-0 text-amber-600" />
+          <span className="flex-1">
+            <strong>{data.myRevisionNeeded} tugas perlu revisi.</strong> Baca
+            catatan Manager lalu kirim ulang hasil perbaikan.
+          </span>
+          <ArrowUpRight className="mt-0.5 size-4 shrink-0" />
+        </Link>
+      ) : null}
+
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Total Riset"
@@ -193,12 +225,17 @@ export default async function DashboardPage({
                 <div className="flex items-center gap-2">
                   <ListChecks className="size-4 text-indigo-500" />
                   <h2 className="text-sm font-semibold text-slate-900">Tugas Saya</h2>
+                  {data.myRevisionNeeded > 0 ? (
+                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
+                      {data.myRevisionNeeded} revisi
+                    </span>
+                  ) : null}
                 </div>
                 <Link
-                  href="/research"
+                  href="/my-tasks"
                   className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
                 >
-                  Lihat semua
+                  Kelola tugas
                 </Link>
               </div>
               <div className="p-2">
@@ -282,13 +319,40 @@ export default async function DashboardPage({
         </div>
 
         <div className="space-y-6">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-2">
+              <UserCog className="size-4 text-indigo-500" />
+              <h2 className="text-sm font-semibold text-slate-900">
+                Ketersediaan Saya
+              </h2>
+            </div>
+            <p className="mt-1 text-[11px] leading-5 text-slate-500">
+              Perbarui status agar Manager dapat mengatur penugasan dengan tepat.
+            </p>
+            <div className="mt-3">
+              <AvailabilityForm
+                targetUserId={user.id}
+                initialAvailability={user.availability as AvailabilityValue}
+                initialNote={user.availabilityNote}
+              />
+            </div>
+          </section>
+
           {isManager ? (
             <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
-                <Users className="size-4 text-indigo-500" />
-                <h2 className="text-sm font-semibold text-slate-900">
-                  Beban Kerja Analyst
-                </h2>
+              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <Users className="size-4 text-indigo-500" />
+                  <h2 className="text-sm font-semibold text-slate-900">
+                    Beban Kerja Analyst
+                  </h2>
+                </div>
+                <Link
+                  href="/team"
+                  className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
+                >
+                  Kelola tim
+                </Link>
               </div>
               <ul className="divide-y divide-slate-100">
                 {data.workload.map((analyst) => {
@@ -333,7 +397,7 @@ export default async function DashboardPage({
 
           <section className="overflow-hidden rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-600 to-indigo-500 p-5 text-white shadow-sm">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-indigo-100">
-              Ringkasan Sprint 1
+              Ringkasan Portofolio
             </p>
             <p className="mt-2 text-3xl font-semibold tracking-tight">
               {data.metrics.completionRate}%
@@ -358,26 +422,29 @@ export default async function DashboardPage({
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-sm font-semibold text-slate-900">
-              Cara kerja Sprint 1
+              Cara kerja Sprint 2
             </h2>
             <ol className="mt-3 space-y-3 text-xs leading-5 text-slate-500">
               <li className="flex gap-2.5">
                 <span className="grid size-5 shrink-0 place-items-center rounded-full bg-indigo-50 text-[10px] font-semibold text-indigo-600">
                   1
                 </span>
-                Manager membuat topik riset beserta relevansi isu dan referensi awal.
+                Analyst memulai pengerjaan, melengkapi checklist DOD, lalu
+                mengirim hasil riset.
               </li>
               <li className="flex gap-2.5">
                 <span className="grid size-5 shrink-0 place-items-center rounded-full bg-indigo-50 text-[10px] font-semibold text-indigo-600">
                   2
                 </span>
-                Tetapkan analyst utama dan backup agar antisipasi ketersediaan.
+                Manager meninjau submission dan memilih approve atau meminta
+                revisi terstruktur.
               </li>
               <li className="flex gap-2.5">
                 <span className="grid size-5 shrink-0 place-items-center rounded-full bg-indigo-50 text-[10px] font-semibold text-indigo-600">
                   3
                 </span>
-                Pantau indikator On Track, Approaching, dan Overdue di setiap riset.
+                Revisi dikerjakan, dikirim ulang, lalu disetujui hingga topik
+                selesai.
               </li>
             </ol>
           </section>

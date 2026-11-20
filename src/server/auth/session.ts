@@ -61,3 +61,9 @@ export async function requireManagerPage(): Promise<CurrentUser> {
   if (user.role !== "MANAGER") redirect("/dashboard?denied=1");
   return user;
 }
+
+export async function requireAnalystPage(): Promise<CurrentUser> {
+  const user = await requireUser();
+  if (user.role !== "ANALYST") redirect("/team");
+  return user;
+}

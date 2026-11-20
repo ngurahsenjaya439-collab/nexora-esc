@@ -176,6 +176,8 @@ export async function createResearchTopicAction(
     const topic = await createResearchTopic(parsed.input, user);
     revalidatePath("/dashboard");
     revalidatePath("/research");
+    revalidatePath("/my-tasks");
+    revalidatePath("/team");
     redirect(`/research/${topic.id}?created=1`);
   } catch (error) {
     unstable_rethrow(error);
@@ -205,6 +207,8 @@ export async function updateResearchTopicAction(
     revalidatePath("/dashboard");
     revalidatePath("/research");
     revalidatePath(`/research/${topicId}`);
+    revalidatePath("/my-tasks");
+    revalidatePath("/team");
     redirect(`/research/${topicId}?updated=1`);
   } catch (error) {
     unstable_rethrow(error);
@@ -223,5 +227,7 @@ export async function archiveResearchTopicAction(topicId: string): Promise<void>
   revalidatePath("/dashboard");
   revalidatePath("/research");
   revalidatePath(`/research/${topicId}`);
+  revalidatePath("/my-tasks");
+  revalidatePath("/team");
   redirect("/research?archived=1");
 }

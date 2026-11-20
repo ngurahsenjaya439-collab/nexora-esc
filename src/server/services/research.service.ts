@@ -3,7 +3,7 @@ import "server-only";
 import { Prisma, ResearchStatus } from "@prisma/client";
 
 import { ACTIVE_STATUS_VALUES, RESEARCH_STATUS_VALUES } from "@/lib/constants";
-import { daysUntilDeadline } from "@/lib/dates";
+import { daysUntilDeadline, getTaskDueBucket } from "@/lib/dates";
 import type { CurrentUser } from "@/server/auth/session";
 import { prisma } from "@/server/db/prisma";
 import type { ResearchTopicInput } from "@/server/validators/research.schema";
@@ -78,7 +78,50 @@ export const topicDetailInclude = {
     orderBy: { createdAt: "desc" },
   },
   dodChecklist: {
-    include: { items: { orderBy: { sortOrder: "asc" } } },
+    include: {
+      appliedBy: { select: { id: true, name: true } },
+      template: { select: { id: true, name: true } },
+      items: {
+        orderBy: { sortOrder: "asc" },
+        include: {
+          checkedBy: { select: { id: true, name: true } },
+        },
+      },
+    },
+  },
+  submissions: {
+    orderBy: { version: "desc" },
+    include: {
+      submittedBy: { select: { id: true, name: true, role: true } },
+      reviewedBy: { select: { id: true, name: true } },
+      attachments: {
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          kind: true,
+          label: true,
+          url: true,
+          fileName: true,
+          mimeType: true,
+          createdAt: true,
+        },
+      },
+      reviews: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          reviewer: { select: { id: true, name: true } },
+        },
+      },
+    },
+  },
+  revisionNotes: {
+    orderBy: { createdAt: "desc" },
+    include: {
+      author: { select: { id: true, name: true, role: true } },
+      resolvedBy: { select: { id: true, name: true } },
+      review: { select: { id: true, decision: true, createdAt: true } },
+      submission: { select: { id: true, version: true } },
+    },
   },
 } satisfies Prisma.ResearchTopicInclude;
 
@@ -100,7 +143,7 @@ const dashboardTopicSelect = {
     },
   },
   assignments: {
-    where: { isActive: true, role: { in: ["PRIMARY", "COLLABORATOR"] } },
+    where: { isActive: true, role: { in: ["PRIMARY", "BACKUP", "COLLABORATOR"] } },
     select: {
       userId: true,
       user: {
@@ -227,6 +270,178 @@ export async function listTopics(params: {
   };
 }
 
+const myTaskInclude = {
+  ...topicListInclude,
+  submissions: {
+    orderBy: { version: "desc" },
+    take: 1,
+    select: {
+      id: true,
+      version: true,
+      status: true,
+      submittedAt: true,
+      reviewedAt: true,
+    },
+  },
+} satisfies Prisma.ResearchTopicInclude;
+
+export type MyTaskItem = Prisma.ResearchTopicGetPayload<{
+  include: typeof myTaskInclude;
+}>;
+
+export type MyTaskSummary = {
+  total: number;
+  todo: number;
+  inProgress: number;
+  inReview: number;
+  revisionNeeded: number;
+  done: number;
+  overdue: number;
+  approaching: number;
+};
+
+export async function listMyTasks(
+  userId: string,
+  params: {
+    q?: string;
+    status?: string;
+    due?: string;
+    role?: string;
+    page?: number;
+    pageSize?: number;
+  },
+) {
+  const pageSize = Math.min(Math.max(params.pageSize ?? 8, 1), 50);
+  const page = Math.max(params.page ?? 1, 1);
+
+  const topics = await prisma.researchTopic.findMany({
+    where: {
+      archivedAt: null,
+      assignments: {
+        some: {
+          userId,
+          isActive: true,
+          role: { in: ["PRIMARY", "BACKUP"] },
+        },
+      },
+    },
+    include: myTaskInclude,
+    orderBy: [{ deadline: "asc" }, { createdAt: "desc" }],
+  });
+
+  const summary: MyTaskSummary = {
+    total: topics.length,
+    todo: topics.filter((topic) => topic.status === "TO_DO").length,
+    inProgress: topics.filter((topic) => topic.status === "IN_PROGRESS").length,
+    inReview: topics.filter((topic) => topic.status === "IN_REVIEW").length,
+    revisionNeeded: topics.filter((topic) => topic.status === "REVISION_NEEDED")
+      .length,
+    done: topics.filter((topic) => topic.status === "DONE").length,
+    overdue: topics.filter(
+      (topic) => getTaskDueBucket(topic.deadline, topic.status) === "overdue",
+    ).length,
+    approaching: topics.filter(
+      (topic) => getTaskDueBucket(topic.deadline, topic.status) === "approaching",
+    ).length,
+  };
+
+  const q = params.q?.trim().toLowerCase();
+  const status = params.status?.trim();
+  const due = params.due?.trim();
+  const role = params.role?.trim();
+
+  const filtered = topics
+    .filter((topic) => {
+      if (
+        status &&
+        RESEARCH_STATUS_VALUES.includes(
+          status as (typeof RESEARCH_STATUS_VALUES)[number],
+        ) &&
+        topic.status !== status
+      ) {
+        return false;
+      }
+
+      if (q) {
+        const haystack = `${topic.title} ${topic.description}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+
+      if (role === "PRIMARY" || role === "BACKUP") {
+        const matchesRole = topic.assignments.some(
+          (assignment) =>
+            assignment.userId === userId &&
+            assignment.isActive &&
+            assignment.role === role,
+        );
+        if (!matchesRole) return false;
+      }
+
+      if (due && due !== "all") {
+        if (getTaskDueBucket(topic.deadline, topic.status) !== due) {
+          return false;
+        }
+      }
+
+      return true;
+    })
+    .sort((a, b) => {
+      const aDone = a.status === "DONE" ? 1 : 0;
+      const bDone = b.status === "DONE" ? 1 : 0;
+      if (aDone !== bDone) return aDone - bDone;
+      return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+    });
+
+  const total = filtered.length;
+
+  return {
+    tasks: filtered.slice((page - 1) * pageSize, page * pageSize),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    summary,
+  };
+}
+
+export async function getWorkflowAttention(user: CurrentUser) {
+  const base: Prisma.ResearchTopicWhereInput = { archivedAt: null };
+
+  if (user.role === "MANAGER") {
+    const [pendingReview, revisionNeeded] = await prisma.$transaction([
+      prisma.researchTopic.count({
+        where: { ...base, status: "IN_REVIEW" },
+      }),
+      prisma.researchTopic.count({
+        where: { ...base, status: "REVISION_NEEDED" },
+      }),
+    ]);
+    return { pendingReview, revisionNeeded };
+  }
+
+  const mine: Prisma.ResearchTopicWhereInput = {
+    ...base,
+    assignments: {
+      some: {
+        userId: user.id,
+        isActive: true,
+        role: { in: ["PRIMARY", "BACKUP"] },
+      },
+    },
+  };
+
+  const [pendingReview, revisionNeeded] = await prisma.$transaction([
+    prisma.researchTopic.count({
+      where: { ...mine, status: "IN_REVIEW" },
+    }),
+    prisma.researchTopic.count({
+      where: { ...mine, status: "REVISION_NEEDED" },
+    }),
+  ]);
+
+  return { pendingReview, revisionNeeded };
+}
+
 export async function getTopicById(id: string): Promise<TopicDetail | null> {
   return prisma.researchTopic.findUnique({
     where: { id },
@@ -281,6 +496,16 @@ export async function getDashboardData(user: CurrentUser) {
     if (!attentionMap.has(topic.id)) attentionMap.set(topic.id, topic);
   }
 
+  const pendingReview = withDays.filter(
+    (topic) => topic.status === "IN_REVIEW",
+  ).length;
+  const revisionNeeded = withDays.filter(
+    (topic) => topic.status === "REVISION_NEEDED",
+  ).length;
+  const myRevisionNeeded = myTasks.filter(
+    (topic) => topic.status === "REVISION_NEEDED",
+  ).length;
+
   const recent = [...withDays]
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
     .slice(0, 5);
@@ -318,12 +543,15 @@ export async function getDashboardData(user: CurrentUser) {
       completed: completed.length,
       overdue: overdue.length,
       unassigned: unassigned.length,
+      pendingReview,
+      revisionNeeded,
       completionRate:
         withDays.length > 0
           ? Math.round((completed.length / withDays.length) * 100)
           : 0,
     },
     myTasks: myTasks.slice(0, 6),
+    myRevisionNeeded,
     attention: [...attentionMap.values()].slice(0, 6),
     workload: analysts.map((analyst) => ({
       id: analyst.id,
@@ -549,6 +777,18 @@ export async function updateResearchTopic(
           toStatus: input.status as ResearchStatus,
           changedById: actor.id,
           note: "Status diperbarui melalui form edit.",
+        },
+      });
+
+      await writeAudit(tx, {
+        actorId: actor.id,
+        action: "RESEARCH_STATUS_OVERRIDDEN",
+        entityType: "ResearchTopic",
+        entityId: topicId,
+        metadata: {
+          fromStatus: current.status,
+          toStatus: input.status,
+          via: "edit-form",
         },
       });
     }

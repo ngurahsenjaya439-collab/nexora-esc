@@ -112,6 +112,106 @@ export const AVAILABILITY_META: Record<
   },
 };
 
+export const SUBMISSION_STATUS_VALUES = [
+  "PENDING_REVIEW",
+  "APPROVED",
+  "REVISION_REQUESTED",
+] as const;
+export type SubmissionStatusValue = (typeof SUBMISSION_STATUS_VALUES)[number];
+
+export const SUBMISSION_STATUS_META: Record<
+  SubmissionStatusValue,
+  { label: string; badge: string; dot: string }
+> = {
+  PENDING_REVIEW: {
+    label: "Menunggu Review",
+    badge: "bg-violet-50 text-violet-700 ring-violet-200",
+    dot: "bg-violet-500",
+  },
+  APPROVED: {
+    label: "Disetujui",
+    badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    dot: "bg-emerald-500",
+  },
+  REVISION_REQUESTED: {
+    label: "Diminta Revisi",
+    badge: "bg-amber-50 text-amber-700 ring-amber-200",
+    dot: "bg-amber-500",
+  },
+};
+
+export const REVIEW_DECISION_META: Record<
+  "APPROVED" | "REVISION_REQUESTED",
+  { label: string; badge: string }
+> = {
+  APPROVED: {
+    label: "Approved",
+    badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  },
+  REVISION_REQUESTED: {
+    label: "Revision Requested",
+    badge: "bg-amber-50 text-amber-700 ring-amber-200",
+  },
+};
+
+export const REVISION_SEVERITY_VALUES = [
+  "LOW",
+  "MEDIUM",
+  "HIGH",
+  "BLOCKING",
+] as const;
+export type RevisionSeverityValue = (typeof REVISION_SEVERITY_VALUES)[number];
+
+export const REVISION_SEVERITY_META: Record<
+  RevisionSeverityValue,
+  { label: string; badge: string; dot: string }
+> = {
+  LOW: {
+    label: "Low",
+    badge: "bg-slate-50 text-slate-600 ring-slate-200",
+    dot: "bg-slate-400",
+  },
+  MEDIUM: {
+    label: "Medium",
+    badge: "bg-sky-50 text-sky-700 ring-sky-200",
+    dot: "bg-sky-500",
+  },
+  HIGH: {
+    label: "High",
+    badge: "bg-orange-50 text-orange-700 ring-orange-200",
+    dot: "bg-orange-500",
+  },
+  BLOCKING: {
+    label: "Blocking",
+    badge: "bg-rose-50 text-rose-700 ring-rose-200",
+    dot: "bg-rose-500",
+  },
+};
+
+export const REVISION_STATUS_META: Record<
+  "OPEN" | "RESOLVED",
+  { label: string; badge: string }
+> = {
+  OPEN: {
+    label: "Open",
+    badge: "bg-amber-50 text-amber-700 ring-amber-200",
+  },
+  RESOLVED: {
+    label: "Resolved",
+    badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  },
+};
+
+export const TASK_STATUS_OPTIONS = (
+  [
+    "TO_DO",
+    "IN_PROGRESS",
+    "IN_REVIEW",
+    "REVISION_NEEDED",
+    "DONE",
+  ] as ResearchStatusValue[]
+).map((status) => ({ value: status, label: STATUS_META[status].label }));
+
 export const REFERENCE_SOURCE_VALUES = [
   "NEWS",
   "JOURNAL",

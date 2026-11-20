@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowUpRight, CalendarClock, FlaskConical, Plus, SearchX } from "lucide-react";
+import {
+  ArrowUpRight,
+  CalendarClock,
+  FileCheck2,
+  FlaskConical,
+  Plus,
+  RotateCcw,
+  SearchX,
+} from "lucide-react";
 
 import { Avatar } from "@/components/research/avatar";
 import { CategoryChip } from "@/components/research/category-chip";
@@ -18,6 +26,7 @@ import { requireUser } from "@/server/auth/session";
 import {
   listCategories,
   listTopics,
+  getWorkflowAttention,
   type TopicListItem,
 } from "@/server/services/research.service";
 import { listAnalystOptions } from "@/server/services/user.service";
@@ -53,10 +62,11 @@ export default async function ResearchListPage({
   const due = asString(params.due);
   const page = Math.max(1, Number(asString(params.page)) || 1);
 
-  const [result, categories, analysts] = await Promise.all([
+  const [result, categories, analysts, attention] = await Promise.all([
     listTopics({ q, status, categoryId, analystId, due, page, pageSize: 8 }),
     listCategories(),
     listAnalystOptions(),
+    getWorkflowAttention(user),
   ]);
 
   const flash =
@@ -86,6 +96,34 @@ export default async function ResearchListPage({
       />
 
       {flash ? <FlashMessage tone={flash.tone} message={flash.message} /> : null}
+
+      {user.role === "MANAGER" && attention.pendingReview > 0 ? (
+        <Link
+          href="/research?status=IN_REVIEW"
+          className="flex items-start gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-800 transition hover:bg-violet-100"
+        >
+          <FileCheck2 className="mt-0.5 size-4 shrink-0 text-violet-600" />
+          <span className="flex-1">
+            <strong>{attention.pendingReview} riset menunggu review.</strong>{" "}
+            Buka detail untuk menyetujui atau meminta revisi.
+          </span>
+          <ArrowUpRight className="mt-0.5 size-4 shrink-0" />
+        </Link>
+      ) : null}
+
+      {user.role === "ANALYST" && attention.revisionNeeded > 0 ? (
+        <Link
+          href={`/research?status=REVISION_NEEDED&analystId=${user.id}`}
+          className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 transition hover:bg-amber-100"
+        >
+          <RotateCcw className="mt-0.5 size-4 shrink-0 text-amber-600" />
+          <span className="flex-1">
+            <strong>{attention.revisionNeeded} tugas perlu revisi.</strong> Baca
+            catatan Manager dan kirim ulang hasil perbaikan.
+          </span>
+          <ArrowUpRight className="mt-0.5 size-4 shrink-0" />
+        </Link>
+      ) : null}
 
       <TopicFilters
         categories={categories.map(({ id, name }) => ({ id, name }))}
@@ -141,6 +179,15 @@ export default async function ResearchListPage({
                 {result.topics.map((topic) => {
                   const primary = primaryAnalyst(topic);
                   const backup = backupAnalyst(topic);
+                  const needsAction =
+                    user.role === "MANAGER"
+                      ? topic.status === "IN_REVIEW"
+                      : topic.status === "REVISION_NEEDED" &&
+                        topic.assignments.some(
+                          (assignment) =>
+                            assignment.userId === user.id &&
+                            assignment.isActive,
+                        );
                   return (
                     <tr
                       key={topic.id}
@@ -170,6 +217,11 @@ export default async function ResearchListPage({
                       </td>
                       <td className="px-4 py-4 align-top">
                         <StatusBadge status={topic.status} />
+                        {needsAction ? (
+                          <span className="mt-1.5 flex w-fit items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
+                            {user.role === "MANAGER" ? "Perlu review" : "Perlu revisi"}
+                          </span>
+                        ) : null}
                       </td>
                       <td className="px-4 py-4 align-top">
                         <PriorityBadge priority={topic.priority} />
@@ -223,6 +275,14 @@ export default async function ResearchListPage({
           <div className="space-y-3 lg:hidden">
             {result.topics.map((topic) => {
               const primary = primaryAnalyst(topic);
+              const needsAction =
+                user.role === "MANAGER"
+                  ? topic.status === "IN_REVIEW"
+                  : topic.status === "REVISION_NEEDED" &&
+                    topic.assignments.some(
+                      (assignment) =>
+                        assignment.userId === user.id && assignment.isActive,
+                    );
               return (
                 <Link
                   key={topic.id}
@@ -239,6 +299,11 @@ export default async function ResearchListPage({
                     <StatusBadge status={topic.status} />
                     <PriorityBadge priority={topic.priority} />
                     <DeadlineBadge deadline={topic.deadline} status={topic.status} />
+                    {needsAction ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
+                        {user.role === "MANAGER" ? "Perlu review" : "Perlu revisi"}
+                      </span>
+                    ) : null}
                   </div>
                   <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
                     <span className="inline-flex items-center gap-1.5">

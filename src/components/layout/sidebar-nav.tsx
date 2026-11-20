@@ -2,14 +2,38 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FlaskConical, LayoutDashboard, Plus } from "lucide-react";
+import { FlaskConical, LayoutDashboard, ListChecks, Plus, Users } from "lucide-react";
 
 import { buttonClasses } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const items = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/research", label: "Riset", icon: FlaskConical },
+type NavRole = "MANAGER" | "ANALYST";
+
+const items: {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  roles: NavRole[];
+}[] = [
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    roles: ["MANAGER", "ANALYST"],
+  },
+  {
+    href: "/research",
+    label: "Riset",
+    icon: FlaskConical,
+    roles: ["MANAGER", "ANALYST"],
+  },
+  {
+    href: "/my-tasks",
+    label: "Tugas Saya",
+    icon: ListChecks,
+    roles: ["ANALYST"],
+  },
+  { href: "/team", label: "Tim", icon: Users, roles: ["MANAGER"] },
 ];
 
 export function SidebarNav({
@@ -21,6 +45,7 @@ export function SidebarNav({
 }) {
   const pathname = usePathname();
   const isDark = variant === "dark";
+  const visibleItems = items.filter((item) => item.roles.includes(role));
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
@@ -28,7 +53,7 @@ export function SidebarNav({
   if (!isDark) {
     return (
       <nav className="flex items-center gap-1 overflow-x-auto px-4 py-2">
-        {items.map((item) => {
+        {visibleItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
           return (
@@ -63,7 +88,7 @@ export function SidebarNav({
   return (
     <div className="flex flex-1 flex-col gap-6 px-3">
       <nav className="space-y-1">
-        {items.map((item) => {
+        {visibleItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
           return (
@@ -99,10 +124,10 @@ export function SidebarNav({
 
       <div className="mt-auto rounded-xl border border-white/10 bg-white/5 p-3">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-          Sprint 1 · MVP
+          Sprint 2 · Workflow
         </p>
         <p className="mt-1 text-xs leading-5 text-slate-400">
-          Topik, penugasan, dan timeline riset dalam satu workspace.
+          Submission, review, revisi, dan checklist DOD dalam satu alur.
         </p>
       </div>
     </div>

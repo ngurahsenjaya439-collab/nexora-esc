@@ -112,6 +112,19 @@ export function getDeadlineInfo(
   };
 }
 
+/** Bucket deadline untuk filter dan badge halaman Tugas Saya. */
+export function getTaskDueBucket(
+  deadline: Date | string,
+  status: string,
+): "overdue" | "approaching" | "on-track" | "done" {
+  if (status === "DONE" || status === "ARCHIVED") return "done";
+
+  const days = daysUntilDeadline(deadline);
+  if (days < 0) return "overdue";
+  if (days <= 3) return "approaching";
+  return "on-track";
+}
+
 export function getTimelineProgress(
   startDate: Date | string,
   deadline: Date | string,

@@ -5,14 +5,17 @@ import {
   ArrowLeft,
   CalendarClock,
   CalendarPlus,
-  CheckCircle2,
-  Circle,
   Clock3,
   ExternalLink,
+  FileCheck2,
   FileText,
   History,
   Link2,
+  ListChecks,
+  MessageSquare,
   Pencil,
+  RotateCcw,
+  StickyNote,
   Target,
   Trash2,
   TriangleAlert,
@@ -22,9 +25,22 @@ import {
 import { Avatar } from "@/components/research/avatar";
 import { CategoryChip } from "@/components/research/category-chip";
 import { DeadlineBadge } from "@/components/research/deadline-badge";
+import {
+  DodChecklist,
+  type DodItemView,
+} from "@/components/research/dod-checklist";
 import { PriorityBadge } from "@/components/research/priority-badge";
 import { ProgressBar } from "@/components/research/progress-bar";
+import {
+  RevisionNotes,
+  type RevisionNoteView,
+} from "@/components/research/revision-notes";
+import { ReviewPanel } from "@/components/research/review-panel";
+import { StatusActions } from "@/components/research/status-actions";
 import { StatusBadge } from "@/components/research/status-badge";
+import { StatusStepper } from "@/components/research/status-stepper";
+import { SubmissionForm } from "@/components/research/submission-form";
+import { SubmissionHistory } from "@/components/research/submission-history";
 import { ConfirmButton } from "@/components/shared/confirm-button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FlashMessage } from "@/components/shared/flash-message";
@@ -34,6 +50,7 @@ import {
   REFERENCE_SOURCE_LABELS,
   type AvailabilityValue,
   type ReferenceSourceValue,
+  type RevisionSeverityValue,
 } from "@/lib/constants";
 import {
   formatDate,
@@ -41,6 +58,7 @@ import {
   getDeadlineInfo,
   getTimelineProgress,
 } from "@/lib/dates";
+import { getStatusActions } from "@/lib/research-workflow";
 import { cn } from "@/lib/utils";
 import { requireUser } from "@/server/auth/session";
 import { archiveResearchTopicAction } from "@/server/actions/research.actions";
@@ -49,6 +67,12 @@ import { getTopicById } from "@/server/services/research.service";
 export const metadata: Metadata = {
   title: "Detail Riset",
 };
+
+const ANALYST_EDITABLE_DOD_STATUSES = [
+  "TO_DO",
+  "IN_PROGRESS",
+  "REVISION_NEEDED",
+];
 
 export default async function ResearchDetailPage({
   params,
@@ -80,17 +104,112 @@ export default async function ResearchDetailPage({
     (assignment) => assignment.role === "COLLABORATOR",
   );
 
+  const isAssigned = activeAssignments.some(
+    (assignment) =>
+      assignment.userId === user.id &&
+      (assignment.role === "PRIMARY" || assignment.role === "BACKUP"),
+  );
+
   const deadlineInfo = getDeadlineInfo(topic.deadline, topic.status);
   const progress = getTimelineProgress(topic.startDate, topic.deadline);
   const dodItems = topic.dodChecklist?.items ?? [];
   const dodDone = dodItems.filter((item) => item.isChecked).length;
+  const missingRequiredDod = dodItems.filter(
+    (item) => item.isRequired && !item.isChecked,
+  ).length;
+  const openRevisionNotes = topic.revisionNotes.filter(
+    (note) => note.status === "OPEN",
+  ).length;
+
+  const pendingSubmission = topic.submissions.find(
+    (submission) => submission.status === "PENDING_REVIEW",
+  );
+  const latestSubmission = topic.submissions[0];
+  const nextVersion = (latestSubmission?.version ?? 0) + 1;
+
+  const statusActions = getStatusActions(topic.status, user.role, isAssigned);
+
+  const canToggleDod =
+    !topic.archivedAt &&
+    (isManager ||
+      (isAssigned && ANALYST_EDITABLE_DOD_STATUSES.includes(topic.status)));
+  const canApplyTemplate = isManager && !topic.archivedAt && !topic.dodChecklist;
+  const canSubmit =
+    !isManager &&
+    isAssigned &&
+    !topic.archivedAt &&
+    (topic.status === "IN_PROGRESS" || topic.status === "REVISION_NEEDED");
+  const canReview =
+    isManager &&
+    !topic.archivedAt &&
+    topic.status === "IN_REVIEW" &&
+    Boolean(pendingSubmission);
+  const canResolveNotes =
+    !topic.archivedAt && (isManager || isAssigned);
+
+  const dodItemViews: DodItemView[] = dodItems.map((item) => ({
+    id: item.id,
+    label: item.label,
+    description: item.description,
+    isRequired: item.isRequired,
+    isChecked: item.isChecked,
+    checkedByName: item.checkedBy?.name ?? null,
+  }));
+
+  const revisionNoteViews: RevisionNoteView[] = topic.revisionNotes.map(
+    (note) => ({
+      id: note.id,
+      section: note.section,
+      note: note.note,
+      severity: note.severity as RevisionSeverityValue,
+      status: note.status,
+      authorName: note.author.name,
+      createdAtLabel: formatDateTime(note.createdAt),
+      resolvedByName: note.resolvedBy?.name ?? null,
+      submissionVersion: note.submission?.version ?? null,
+    }),
+  );
 
   const flash =
     query.created === "1"
       ? { tone: "success" as const, message: "Topik riset berhasil dibuat." }
       : query.updated === "1"
-        ? { tone: "success" as const, message: "Perubahan topik riset berhasil disimpan." }
-        : null;
+        ? {
+            tone: "success" as const,
+            message: "Perubahan topik riset berhasil disimpan.",
+          }
+        : query.status === "updated"
+          ? {
+              tone: "success" as const,
+              message: "Status riset berhasil diperbarui.",
+            }
+          : query.submitted === "1"
+            ? {
+                tone: "success" as const,
+                message:
+                  "Hasil riset berhasil dikirim dan sedang menunggu review Manager.",
+              }
+            : query.review === "approved"
+              ? {
+                  tone: "success" as const,
+                  message:
+                    "Submission disetujui. Topik riset telah ditandai selesai.",
+                }
+              : query.review === "revision"
+                ? {
+                    tone: "info" as const,
+                    message:
+                      "Permintaan revisi telah dikirim. Analyst dapat melihat catatan di halaman ini.",
+                  }
+                : null;
+
+  const busyTeamMembers = [primary, backup]
+    .filter((assignment): assignment is NonNullable<typeof primary> =>
+      Boolean(assignment),
+    )
+    .filter(
+      (assignment) => assignment.user.availability !== "AVAILABLE",
+    );
 
   return (
     <div className="space-y-5">
@@ -157,6 +276,19 @@ export default async function ResearchDetailPage({
                   Arsipkan
                 </ConfirmButton>
               </form>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-5 rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+          <StatusStepper status={topic.status} />
+
+          {statusActions.length > 0 ? (
+            <div className="mt-4 border-t border-slate-200/70 pt-3">
+              <p className="mb-2 text-[11px] font-medium text-slate-500">
+                Aksi status cepat
+              </p>
+              <StatusActions topicId={topic.id} actions={statusActions} />
             </div>
           ) : null}
         </div>
@@ -240,6 +372,152 @@ export default async function ResearchDetailPage({
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-5 py-4">
+              <div className="flex items-center gap-2">
+                <FileCheck2 className="size-4 text-violet-500" />
+                <h2 className="text-sm font-semibold text-slate-900">
+                  Submission & Review
+                </h2>
+              </div>
+              <span className="text-xs text-slate-400">
+                {topic.submissions.length} versi
+                {pendingSubmission ? " · 1 menunggu review" : ""}
+              </span>
+            </div>
+
+            <div className="space-y-4 px-5 py-4">
+              {topic.archivedAt ? (
+                <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-3 text-xs text-slate-500">
+                  Topik yang diarsipkan bersifat read-only. Submission dan review
+                  tidak dapat dilakukan.
+                </p>
+              ) : null}
+
+              {canSubmit ? (
+                <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
+                  <div className="flex items-start gap-2.5">
+                    <FileCheck2 className="mt-0.5 size-4 shrink-0 text-indigo-600" />
+                    <div>
+                      <p className="text-xs font-semibold text-indigo-900">
+                        Kirim Hasil Riset
+                      </p>
+                      <p className="mt-1 text-[11px] leading-5 text-indigo-800">
+                        Lengkapi checklist DOD wajib, lalu ajukan hasil untuk
+                        direview Manager. Submission akan mengubah status menjadi
+                        In Review.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <SubmissionForm
+                      topicId={topic.id}
+                      blockedByDod={missingRequiredDod > 0}
+                      missingRequired={missingRequiredDod}
+                      nextVersion={nextVersion}
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              {!isManager && isAssigned && topic.status === "IN_REVIEW" ? (
+                <div className="flex items-start gap-2.5 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-xs leading-5 text-violet-800">
+                  <Clock3 className="mt-0.5 size-4 shrink-0 text-violet-600" />
+                  <p>
+                    Hasil riset sedang menunggu review Manager. Anda tetap dapat
+                    melengkapi checklist DOD bila diperlukan.
+                  </p>
+                </div>
+              ) : null}
+
+              {!isManager && isAssigned && topic.status === "DONE" ? (
+                <div className="flex items-start gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs leading-5 text-emerald-800">
+                  <FileCheck2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+                  <p>
+                    Riset ini telah disetujui Manager. Tidak ada submission baru
+                    yang diperlukan.
+                  </p>
+                </div>
+              ) : null}
+
+              {isManager &&
+              !topic.archivedAt &&
+              topic.status === "IN_REVIEW" &&
+              !pendingSubmission ? (
+                <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">
+                  <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600" />
+                  <p>
+                    Topik berstatus In Review, tetapi tidak ada submission yang
+                    menunggu review. Periksa riwayat submission di bawah.
+                  </p>
+                </div>
+              ) : null}
+
+              {canReview && pendingSubmission ? (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                  <div className="flex items-start gap-2.5">
+                    <MessageSquare className="mt-0.5 size-4 shrink-0 text-slate-500" />
+                    <div>
+                      <p className="text-xs font-semibold text-slate-900">
+                        Panel Review Manager
+                      </p>
+                      <p className="mt-1 text-[11px] leading-5 text-slate-500">
+                        Tinjau submission v{pendingSubmission.version} dari{" "}
+                        {pendingSubmission.submittedBy.name}. Setujui atau minta
+                        revisi dengan catatan terstruktur.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <ReviewPanel
+                      topicId={topic.id}
+                      submissionId={pendingSubmission.id}
+                      submissionVersion={pendingSubmission.version}
+                      dodMissing={missingRequiredDod}
+                      openRevisionNotes={openRevisionNotes}
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              <div>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                  Riwayat Submission
+                </p>
+                <SubmissionHistory submissions={topic.submissions} />
+              </div>
+            </div>
+          </section>
+
+          {topic.revisionNotes.length > 0 ? (
+            <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <StickyNote className="size-4 text-amber-500" />
+                  <h2 className="text-sm font-semibold text-slate-900">
+                    Catatan Revisi
+                  </h2>
+                </div>
+                <span
+                  className={cn(
+                    "text-xs font-medium",
+                    openRevisionNotes > 0 ? "text-amber-600" : "text-emerald-600",
+                  )}
+                >
+                  {openRevisionNotes > 0
+                    ? `${openRevisionNotes} open`
+                    : "Semua selesai"}
+                </span>
+              </div>
+              <div className="px-5 py-4">
+                <RevisionNotes
+                  notes={revisionNoteViews}
+                  canResolve={canResolveNotes}
+                />
+              </div>
+            </section>
+          ) : null}
+
+          <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
               <div className="flex items-center gap-2">
                 <Link2 className="size-4 text-sky-500" />
@@ -247,7 +525,9 @@ export default async function ResearchDetailPage({
                   Referensi Awal
                 </h2>
               </div>
-              <span className="text-xs text-slate-400">{topic.references.length} sumber</span>
+              <span className="text-xs text-slate-400">
+                {topic.references.length} sumber
+              </span>
             </div>
             {topic.references.length === 0 ? (
               <EmptyState
@@ -277,9 +557,13 @@ export default async function ResearchDetailPage({
                               reference.sourceType as ReferenceSourceValue
                             ] ?? reference.sourceType}
                           </span>
-                          {reference.publisher ? <span>{reference.publisher}</span> : null}
+                          {reference.publisher ? (
+                            <span>{reference.publisher}</span>
+                          ) : null}
                           {reference.isPrimary ? (
-                            <span className="font-medium text-indigo-600">Sumber utama</span>
+                            <span className="font-medium text-indigo-600">
+                              Sumber utama
+                            </span>
                           ) : null}
                         </div>
                         {reference.relevanceNote ? (
@@ -312,7 +596,10 @@ export default async function ResearchDetailPage({
             ) : (
               <ol className="space-y-0 px-5 py-4">
                 {topic.statusHistory.map((entry, index) => (
-                  <li key={entry.id} className="relative flex gap-3 pb-4 last:pb-0">
+                  <li
+                    key={entry.id}
+                    className="relative flex gap-3 pb-4 last:pb-0"
+                  >
                     {index < topic.statusHistory.length - 1 ? (
                       <span className="absolute left-[7px] top-4 h-full w-px bg-slate-200" />
                     ) : null}
@@ -323,7 +610,9 @@ export default async function ResearchDetailPage({
                           ? "bg-emerald-500"
                           : entry.toStatus === "ARCHIVED"
                             ? "bg-slate-400"
-                            : "bg-indigo-500",
+                            : entry.toStatus === "REVISION_NEEDED"
+                              ? "bg-amber-500"
+                              : "bg-indigo-500",
                       )}
                     />
                     <div className="min-w-0 flex-1">
@@ -352,6 +641,41 @@ export default async function ResearchDetailPage({
 
         <div className="space-y-5">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ListChecks className="size-4 text-emerald-500" />
+                <h2 className="text-sm font-semibold text-slate-900">
+                  Definition of Done
+                </h2>
+              </div>
+              {dodItems.length > 0 ? (
+                <span className="text-xs font-medium text-slate-500">
+                  {dodDone}/{dodItems.length}
+                </span>
+              ) : null}
+            </div>
+
+            <DodChecklist
+              key={topic.dodChecklist?.id ?? "no-checklist"}
+              topicId={topic.id}
+              items={dodItemViews}
+              hasChecklist={Boolean(topic.dodChecklist)}
+              canToggle={canToggleDod}
+              canApplyTemplate={canApplyTemplate}
+              templateName={topic.dodChecklist?.template?.name ?? null}
+              appliedByName={topic.dodChecklist?.appliedBy?.name ?? null}
+            />
+
+            {canSubmit && missingRequiredDod > 0 ? (
+              <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-amber-50 px-2.5 py-2 text-[11px] leading-4 text-amber-800">
+                <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+                Lengkapi {missingRequiredDod} item wajib sebelum mengirim hasil
+                riset.
+              </p>
+            ) : null}
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-2">
               <Clock3 className="size-4 text-indigo-500" />
               <h2 className="text-sm font-semibold text-slate-900">Timeline</h2>
@@ -376,7 +700,9 @@ export default async function ResearchDetailPage({
             <div className="mt-4">
               <div className="mb-1.5 flex items-center justify-between text-[11px] text-slate-500">
                 <span>Progres waktu</span>
-                <span className="font-medium text-slate-700">{progress.percent}%</span>
+                <span className="font-medium text-slate-700">
+                  {progress.percent}%
+                </span>
               </div>
               <ProgressBar
                 value={progress.percent}
@@ -393,15 +719,21 @@ export default async function ResearchDetailPage({
             <dl className="mt-4 space-y-2.5 text-xs">
               <div className="flex items-center justify-between">
                 <dt className="text-slate-500">Tanggal mulai</dt>
-                <dd className="font-medium text-slate-800">{formatDate(topic.startDate)}</dd>
+                <dd className="font-medium text-slate-800">
+                  {formatDate(topic.startDate)}
+                </dd>
               </div>
               <div className="flex items-center justify-between">
                 <dt className="text-slate-500">Deadline</dt>
-                <dd className="font-medium text-slate-800">{formatDate(topic.deadline)}</dd>
+                <dd className="font-medium text-slate-800">
+                  {formatDate(topic.deadline)}
+                </dd>
               </div>
               <div className="flex items-center justify-between">
                 <dt className="text-slate-500">Durasi total</dt>
-                <dd className="font-medium text-slate-800">{progress.totalDays} hari</dd>
+                <dd className="font-medium text-slate-800">
+                  {progress.totalDays} hari
+                </dd>
               </div>
               {topic.completedAt ? (
                 <div className="flex items-center justify-between">
@@ -419,6 +751,24 @@ export default async function ResearchDetailPage({
               <Users className="size-4 text-indigo-500" />
               <h2 className="text-sm font-semibold text-slate-900">Tim Riset</h2>
             </div>
+
+            {busyTeamMembers.length > 0 ? (
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-5 text-amber-800">
+                <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+                <span>
+                  {busyTeamMembers
+                    .map((assignment) => {
+                      const meta =
+                        AVAILABILITY_META[
+                          assignment.user.availability as AvailabilityValue
+                        ] ?? AVAILABILITY_META.AVAILABLE;
+                      return `${assignment.user.name} sedang ${meta.label}`;
+                    })
+                    .join(", ")}
+                  . Pertimbangkan beban kerja sebelum menetapkan deadline baru.
+                </span>
+              </div>
+            ) : null}
 
             <div className="mt-3 space-y-3">
               <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
@@ -447,6 +797,11 @@ export default async function ResearchDetailPage({
                           ].label
                         }
                       </p>
+                      {primary.user.availabilityNote ? (
+                        <p className="mt-0.5 truncate text-[10px] text-slate-400">
+                          {primary.user.availabilityNote}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 ) : (
@@ -483,6 +838,11 @@ export default async function ResearchDetailPage({
                           ].label
                         }
                       </p>
+                      {backup.user.availabilityNote ? (
+                        <p className="mt-0.5 truncate text-[10px] text-slate-400">
+                          {backup.user.availabilityNote}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 ) : (
@@ -509,54 +869,16 @@ export default async function ResearchDetailPage({
                 </div>
               ) : null}
             </div>
-          </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="size-4 text-emerald-500" />
-                <h2 className="text-sm font-semibold text-slate-900">Definition of Done</h2>
-              </div>
-              {dodItems.length > 0 ? (
-                <span className="text-xs font-medium text-slate-500">
-                  {dodDone}/{dodItems.length}
-                </span>
-              ) : null}
-            </div>
-
-            {dodItems.length === 0 ? (
-              <p className="mt-3 text-xs leading-5 text-slate-500">
-                Checklist DOD belum diterapkan pada topik ini. Template standar riset ESC
-                dapat diterapkan pada sprint berikutnya.
-              </p>
-            ) : (
-              <>
-                <ProgressBar
-                  value={Math.round((dodDone / dodItems.length) * 100)}
-                  className="mt-3"
-                  barClassName="bg-emerald-500"
-                />
-                <ul className="mt-3 space-y-2">
-                  {dodItems.map((item) => (
-                    <li key={item.id} className="flex items-start gap-2 text-xs">
-                      {item.isChecked ? (
-                        <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />
-                      ) : (
-                        <Circle className="mt-0.5 size-3.5 shrink-0 text-slate-300" />
-                      )}
-                      <span
-                        className={cn(
-                          "leading-5",
-                          item.isChecked ? "text-slate-500 line-through" : "text-slate-700",
-                        )}
-                      >
-                        {item.label}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
+            {isManager && topic.submissions.length > 0 ? (
+              <Link
+                href="/team"
+                className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-indigo-600 transition hover:text-indigo-500"
+              >
+                <RotateCcw className="size-3" />
+                Kelola ketersediaan tim
+              </Link>
+            ) : null}
           </section>
         </div>
       </div>

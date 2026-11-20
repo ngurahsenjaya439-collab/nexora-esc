@@ -1,10 +1,15 @@
 import {
   AssignmentRole,
+  AttachmentKind,
   AvailabilityStatus,
   Priority,
   ReferenceSourceType,
   ResearchStatus,
+  ReviewDecision,
+  RevisionSeverity,
+  RevisionStatus,
   Role,
+  SubmissionStatus,
   PrismaClient,
 } from "@prisma/client";
 
@@ -540,27 +545,208 @@ async function main() {
     ),
   );
 
-  const firstTopicId = "a1000000-0000-4000-8000-000000000001";
-  await prisma.dodChecklist.deleteMany({ where: { topicId: firstTopicId } });
-  const checklist = await prisma.dodChecklist.create({
+  const topicIds = {
+    genZ: "a1000000-0000-4000-8000-000000000001",
+    energi: "a1000000-0000-4000-8000-000000000002",
+    ai: "a1000000-0000-4000-8000-000000000003",
+    data: "a1000000-0000-4000-8000-000000000004",
+    hijau: "a1000000-0000-4000-8000-000000000005",
+    makan: "a1000000-0000-4000-8000-000000000006",
+  } as const;
+
+  const firstTopicId = topicIds.genZ;
+
+  async function applyChecklist(
+    topicId: string,
+    checkedCount: number,
+    checkedById: string,
+  ): Promise<void> {
+    await prisma.dodChecklist.deleteMany({ where: { topicId } });
+    const checklist = await prisma.dodChecklist.create({
+      data: {
+        topicId,
+        templateId: dodTemplate.id,
+        appliedById: manager.id,
+      },
+    });
+    await prisma.dodChecklistItem.createMany({
+      data: dodItems.map((item, index) => ({
+        checklistId: checklist.id,
+        templateItemId: item.id,
+        label: item.label,
+        isRequired: true,
+        isChecked: index < checkedCount,
+        checkedById: index < checkedCount ? checkedById : null,
+        checkedAt: index < checkedCount ? at(-1, 13) : null,
+        sortOrder: index + 1,
+      })),
+    });
+  }
+
+  await applyChecklist(firstTopicId, 3, nadia.id);
+  await applyChecklist(topicIds.energi, 5, rizky.id);
+  await applyChecklist(topicIds.data, 5, nadia.id);
+  await applyChecklist(topicIds.hijau, 4, rizky.id);
+
+  // Data demo Sprint 2: submission, review, dan catatan revisi.
+  await prisma.revisionNote.deleteMany({
+    where: { topicId: { in: topicSeed.map((topic) => topic.id) } },
+  });
+  await prisma.researchReview.deleteMany({
+    where: { submission: { topicId: { in: topicSeed.map((topic) => topic.id) } } },
+  });
+  await prisma.researchSubmission.deleteMany({
+    where: { topicId: { in: topicSeed.map((topic) => topic.id) } },
+  });
+
+  await prisma.researchSubmission.create({
     data: {
-      topicId: firstTopicId,
-      templateId: dodTemplate.id,
-      appliedById: manager.id,
+      id: "c1000000-0000-4000-8000-000000000001",
+      topicId: topicIds.energi,
+      submittedById: rizky.id,
+      version: 1,
+      summary:
+        "Simulasi biaya menunjukkan kenaikan harga energi 15% menaikkan biaya operasional UMKM makanan sebesar 8,4% dan UMKM logistik sebesar 11,2%. Dampak paling besar dirasakan usaha dengan margin di bawah 12%. Rekomendasi utama: skema kompensasi bertahap, penguatan efisiensi energi, dan pendampingan pembiayaan bagi UMKM padat energi.",
+      status: SubmissionStatus.PENDING_REVIEW,
+      submittedAt: at(-1, 16),
+      createdAt: at(-1, 16),
+      attachments: {
+        create: [
+          {
+            kind: AttachmentKind.LINK,
+            label: "Dokumen utama",
+            url: "https://docs.google.com/document/d/dampak-subsidi-energi-umkm",
+          },
+          {
+            kind: AttachmentKind.LINK,
+            label: "Matriks simulasi biaya",
+            url: "https://docs.google.com/spreadsheets/d/simulasi-biaya-umkm",
+          },
+        ],
+      },
     },
   });
-  await prisma.dodChecklistItem.createMany({
-    data: dodItems.map((item, index) => ({
-      checklistId: checklist.id,
-      templateItemId: item.id,
-      label: item.label,
-      isRequired: true,
-      isChecked: index < 3,
-      checkedById: index < 3 ? nadia.id : null,
-      checkedAt: index < 3 ? at(-1, 13) : null,
-      sortOrder: index + 1,
-    })),
+
+  await prisma.researchSubmission.create({
+    data: {
+      id: "c1000000-0000-4000-8000-000000000002",
+      topicId: topicIds.data,
+      submittedById: nadia.id,
+      version: 1,
+      summary:
+        "Matriks kepatuhan menunjukkan Indonesia, Malaysia, dan Filipina memiliki rezim perlindungan data yang relatif matang, sementara Laos dan Kamboja masih dalam tahap penguatan regulasi. Rekomendasi internal mencakup pemetaan aliran data lintas negara, penunjukan data protection officer, dan klausul due diligence pada kemitraan riset.",
+      status: SubmissionStatus.APPROVED,
+      submittedAt: at(-5, 10),
+      reviewedById: manager.id,
+      reviewedAt: at(-3, 15),
+      createdAt: at(-5, 10),
+      attachments: {
+        create: [
+          {
+            kind: AttachmentKind.LINK,
+            label: "Dokumen utama",
+            url: "https://docs.google.com/document/d/kerangka-regulasi-data-asean",
+          },
+        ],
+      },
+      reviews: {
+        create: [
+          {
+            id: "e1000000-0000-4000-8000-000000000001",
+            reviewerId: manager.id,
+            decision: ReviewDecision.APPROVED,
+            summary:
+              "Analisis komparatif solid dan rekomendasi internal dapat langsung ditindaklanjuti. Disetujui untuk dipublikasikan sebagai laporan internal.",
+            createdAt: at(-3, 15),
+          },
+        ],
+      },
+    },
   });
+
+  const greenSubmission = await prisma.researchSubmission.create({
+    data: {
+      id: "c1000000-0000-4000-8000-000000000003",
+      topicId: topicIds.hijau,
+      submittedById: rizky.id,
+      version: 1,
+      summary:
+        "Pemetaan awal tiga kawasan industri menunjukkan celah pada penyediaan energi terbarukan, pengelolaan limbah, dan sertifikasi bangunan hijau. Prioritas investasi diusulkan pada modernisasi jaringan dan insentif efisiensi energi. Namun perbandingan antar-kawasan dan sitasi target kebijakan masih perlu diperkuat.",
+      status: SubmissionStatus.REVISION_REQUESTED,
+      submittedAt: at(-3, 9),
+      reviewedById: manager.id,
+      reviewedAt: at(-1, 11),
+      createdAt: at(-3, 9),
+      attachments: {
+        create: [
+          {
+            kind: AttachmentKind.LINK,
+            label: "Dokumen utama",
+            url: "https://docs.google.com/document/d/kesiapan-infrastruktur-hijau",
+          },
+        ],
+      },
+      reviews: {
+        create: [
+          {
+            id: "e1000000-0000-4000-8000-000000000002",
+            reviewerId: manager.id,
+            decision: ReviewDecision.REVISION_REQUESTED,
+            summary:
+              "Arah analisis sudah tepat, tetapi kedalaman pembandingan dan ketertelusuran sitasi belum memenuhi standar. Mohon lengkapi dua kawasan pembanding dan perbaiki rujukan target transisi energi sebelum brief ke mitra industri.",
+            createdAt: at(-1, 11),
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.revisionNote.createMany({
+    data: [
+      {
+        id: "f1000000-0000-4000-8000-000000000001",
+        topicId: topicIds.hijau,
+        submissionId: greenSubmission.id,
+        reviewId: "e1000000-0000-4000-8000-000000000002",
+        authorId: manager.id,
+        section: "Analisis & Temuan",
+        note: "Bagian analisis celah infrastruktur masih bertumpu pada satu kawasan. Tambahkan perbandingan dengan minimal dua kawasan lain dan jelaskan kriteria pemilihan kawasan.",
+        severity: RevisionSeverity.HIGH,
+        status: RevisionStatus.OPEN,
+        createdAt: at(-1, 11),
+      },
+      {
+        id: "f1000000-0000-4000-8000-000000000002",
+        topicId: topicIds.hijau,
+        submissionId: greenSubmission.id,
+        reviewId: "e1000000-0000-4000-8000-000000000002",
+        authorId: manager.id,
+        section: "Referensi & Sitasi",
+        note: "Klaim target transisi energi belum memiliki sitasi halaman. Lengkapi rujukan ke Peta Jalan Transisi Energi Nasional beserta tahun terbit dan tautan resminya.",
+        severity: RevisionSeverity.BLOCKING,
+        status: RevisionStatus.OPEN,
+        createdAt: at(-1, 11),
+      },
+      {
+        id: "f1000000-0000-4000-8000-000000000003",
+        topicId: topicIds.hijau,
+        submissionId: greenSubmission.id,
+        reviewId: "e1000000-0000-4000-8000-000000000002",
+        authorId: manager.id,
+        section: "Metodologi",
+        note: "Jelaskan teknik pemilihan informan dan periode wawancara agar temuan dapat direplikasi oleh tim lain.",
+        severity: RevisionSeverity.MEDIUM,
+        status: RevisionStatus.RESOLVED,
+        resolvedById: rizky.id,
+        resolvedAt: at(-1, 16),
+        createdAt: at(-1, 11),
+      },
+    ],
+  });
+
+  console.log(
+    "   Sprint 2: 1 submission menunggu review, 1 approved, 1 revisi dengan catatan.",
+  );
 
   if ((await prisma.auditLog.count()) === 0) {
     await prisma.auditLog.createMany({
